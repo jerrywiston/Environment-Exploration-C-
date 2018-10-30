@@ -1,6 +1,7 @@
 #include <Config.h>
 #include <opencv2/opencv.hpp>
 #include <map>
+#include <cstring>
 
 struct CmpVector2 {
     template <class T>
@@ -8,8 +9,6 @@ struct CmpVector2 {
         return lhs[0]<rhs[0] || (lhs[0] == rhs[0] && lhs[1] < rhs[1]);
     }
 };
-
-
 
 namespace gslam {
     struct MapParam {
@@ -22,6 +21,21 @@ namespace gslam {
     struct BoundingBox {
         Vector2i min;
         Vector2i max;
+    };
+
+    template <size_t N>
+    class MegaGrid {
+    public:
+        MegaGrid() {
+            for(int i=0; i<N*N; i++)
+                m_data[i] = 0;
+        }
+        real &operator()(const Vector2i &xy)
+        { return m_data[xy[1]*N+xy[0]]; }
+        const real &operator()(const Vector2i &xy) const
+        { return m_data[xy[1]*N+xy[0]]; }
+    private:
+        real m_data[N*N];
     };
 
     class GridMap {
@@ -43,13 +57,14 @@ namespace gslam {
         BoundingBox getBoundary() const
         {return m_boundary;}
 
-        int getSize(){
-            return m_map.size();
+        size_t getMemoryUsage(){
+            return m_mmap.size() * sizeof(GridMap);
         }
     private:
         MapParam m_param;
         real m_gsize;
-        std::map<Vector2i, real, CmpVector2> m_map;
+        std::map<Vector2i, MegaGrid<MEGAGRID_SIZE>, CmpVector2> m_mmap;
+        //std::map<Vector2i, real, CmpVector2> m_map;
         BoundingBox m_boundary;
         
     };

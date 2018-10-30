@@ -25,6 +25,8 @@ namespace gslam {
 
 }
 
+#define MEGAGRID_SIZE 33
+
 static inline gslam::real operator"" _r(long double val)  
 {  
     return static_cast<gslam::real>(val);
