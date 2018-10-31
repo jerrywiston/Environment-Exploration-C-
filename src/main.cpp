@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     Vector2 bot_pos = {150.0, 100.0};
     real theta = (real)0.0;
     BotParam bot_param;
-    bot_param.sensor_size = 360;
+    bot_param.sensor_size = 300;
     bot_param.start_angle = -30;
     bot_param.end_angle = 210;
     bot_param.max_dist = 150;

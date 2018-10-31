@@ -58,10 +58,12 @@ namespace gslam
             real change = m_param.lo_occ;
             if(i>=rec.size()-3)
                 change = m_param.lo_free;
+            //std::cout << ">>>" << rec[i] << "\n";
 			Vector2i gridCoord = { std::ceil ((std::abs(rec[i][0]) - half) / MEGAGRID_SIZE),
 				std::ceil((std::abs(rec[i][1]) - half) / MEGAGRID_SIZE )};
 			gridCoord[0] *= rec[i][0] < 0 ? -1 : 1;
 			gridCoord[1] *= rec[i][1] < 0 ? -1 : 1;
+            //std::cout << ">" << gridCoord << "\n";
             Vector2i girdLeftTop = gridCoord * MEGAGRID_SIZE - Vector2i{half, half};
 			Vector2i pp = rec[i] - girdLeftTop;
             auto it = m_mmap.find(gridCoord);
@@ -75,13 +77,12 @@ namespace gslam
             } else {
                 
                 auto &newmega = m_mmap[gridCoord];
-				
                 newmega(pp) = change;
-                m_boundary.min[0] = std::min(rec[i][0], m_boundary.min[0]);
-                m_boundary.min[1] = std::min(rec[i][1], m_boundary.min[1]);
-                m_boundary.max[0] = std::max(rec[i][0], m_boundary.max[0]);
-                m_boundary.max[1] = std::max(rec[i][1], m_boundary.max[1]);
             }
+            m_boundary.min[0] = std::min(rec[i][0], m_boundary.min[0]);
+            m_boundary.min[1] = std::min(rec[i][1], m_boundary.min[1]);
+            m_boundary.max[0] = std::max(rec[i][0], m_boundary.max[0]);
+            m_boundary.max[1] = std::max(rec[i][1], m_boundary.max[1]);
         }
     }
 

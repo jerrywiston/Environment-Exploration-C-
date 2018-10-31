@@ -25,7 +25,7 @@ namespace gslam {
 
 }
 
-#define MEGAGRID_SIZE 33
+#define MEGAGRID_SIZE 151
 
 static inline gslam::real operator"" _r(long double val)  
 {  
