@@ -16,8 +16,13 @@ namespace gslam
         void mapping(const BotParam &param, const SensorData &reading);
         void sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig={0.4_r, 0.4_r, 0.4_r});
         real calcLikelihood(const BotParam &param, const SensorData &readings) const;
-        Vector3f getPose(){
+        
+        Vector3 getPose(){
             return m_pose;
+        }
+
+        GridMap getMap(){
+            return m_gmap;
         }
     private:
         Vector3 m_pose;
@@ -37,6 +42,10 @@ namespace gslam
         
         Vector3 getPose(int id){
             return m_particles[id].getPose();
+        }
+
+        Particle getParticle(int id){
+            return m_particles[id];
         }
     
     private:

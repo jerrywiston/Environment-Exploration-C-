@@ -55,9 +55,9 @@ namespace gslam
         const real half = (MEGAGRID_SIZE-1) / 2;
 
         for(int i=0; i<rec.size(); i++) {
-            real change = m_param.lo_occ;
+            real change = m_param.lo_free;
             if(i>=rec.size()-3)
-                change = m_param.lo_free;
+                change = m_param.lo_occ;
             //std::cout << ">>>" << rec[i] << "\n";
 			Vector2i gridCoord = { std::ceil ((std::abs(rec[i][0]) - half) / MEGAGRID_SIZE),
 				std::ceil((std::abs(rec[i][1]) - half) / MEGAGRID_SIZE )};

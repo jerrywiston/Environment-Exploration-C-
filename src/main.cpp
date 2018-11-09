@@ -37,7 +37,7 @@ cv::Mat Draw(cv::Mat img, Vector3 bot_pose, BotParam bot_param, SensorData sdata
 
 cv::Mat DrawParticle(cv::Mat img, ParticleFilter pf){
     for(int i=0; i<pf.getSize(); ++i){
-        Vector3f pose = pf.getPose(i);
+        Vector3 pose = pf.getPose(i);
         cv::circle(img,cv::Point(int(pose[0]), int(pose[1])), 1, cv::Scalar(255,0,0), -1);
     }
     return img;
@@ -65,14 +65,14 @@ int main(int argc, char *argv[]) {
     cv::namedWindow("view", cv::WINDOW_AUTOSIZE);
 
     // Map
-    gslam::GridMap gmap({0.4_r, -0.4_r, 5.0_r, -5.0_r});
+    gslam::GridMap gmap({-0.4_r, 0.4_r, 5.0_r, -5.0_r});
     SensorMapping(gmap, bot_pose, env.scan());
     BoundingBox bb = gmap.getBoundary(); 
     auto map = gmap.getMapProb(bb.min, bb.max);
-    gslam::utils::VisualizeGrid(map);
+    gslam::utils::VisualizeGrid(map, "map_env");
 
     // Particle Filter
-    ParticleFilter pf(bot_pose, bot_param, gmap, 80);
+    ParticleFilter pf(bot_pose, bot_param, gmap, 100);
 
     // Initialize
     cv::Mat img = Map2Image(env.getMap());
@@ -96,24 +96,19 @@ int main(int argc, char *argv[]) {
             case 'd':
                 action = Control::eTurnRight;
                 break;
-            case 'm':
-                auto map = gmap.getMapProb({0, 0}, {300, 300});
-                gslam::utils::VisualizeGrid(map);
-                break;
         }
         if(action != Control::eNone){
             env.botAction(action);
 
             //particle filter
             real Neff = pf.feed(action, env.scan());
-            /*
             std::cout << "Neff: " << Neff << std::endl;
             if(Neff < 0.5){
                 std::cout << "Resampling ..." << std::endl;
                 pf.resampling();
                 std::cout << "Done !!" << std::endl;
             }
-            */
+            
 
             cv::Mat img = Map2Image(env.getMap());
             img = Draw(img, env.getPose(), env.getParam(), env.scan());
@@ -123,7 +118,12 @@ int main(int argc, char *argv[]) {
             SensorMapping(gmap, env.getPose(), env.scan());
             BoundingBox bb = gmap.getBoundary(); 
             auto map = gmap.getMapProb(bb.min, bb.max);
-            gslam::utils::VisualizeGrid(map);
+            gslam::utils::VisualizeGrid(map, "map_env");
+
+            GridMap gmap_p = pf.getParticle(0).getMap();
+            BoundingBox bb2 = gmap_p.getBoundary();
+            auto map2 = gmap_p.getMapProb(bb2.min, bb2.max);
+            gslam::utils::VisualizeGrid(map2, "map_particle");
         }
     }              
     return 0;

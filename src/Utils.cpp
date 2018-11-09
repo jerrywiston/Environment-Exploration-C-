@@ -3,24 +3,27 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include <string>
 
-void swap(float &a, float &b){
-    float c = a;
-    a = b;
-    b = c;
-}
+
 
 namespace gslam
 {
+    void swap(real &a, real &b){
+        real c = a;
+        a = b;
+        b = c;
+    }
+    
 namespace utils
 {
-    void VisualizeGrid(const cv::Mat &mat)
+    void VisualizeGrid(const cv::Mat &mat, const std::string name)
     {
         assert(mat.type() == CV_REAL_C1);
         cv::Mat target;
         cv::Mat m = mat*255.0_r;
         target.convertTo(m, CV_8UC1);
-        cv::imshow("grid", mat);
+        cv::imshow(name, mat);
     }
     //void Line( const float x1, const float y1, const float x2, const float y2)
     void Bresenham(std::vector<Vector2i> &rec, const Vector2i &xy1, const Vector2i &xy2)

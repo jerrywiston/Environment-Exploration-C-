@@ -5,12 +5,13 @@
 #include <opencv2/opencv.hpp>
 #include "Config.h"
 #include "Type.h"
+#include <string>
 
 namespace gslam
 {
     namespace utils
     {
-        void VisualizeGrid(const cv::Mat &mat);
+        void VisualizeGrid(const cv::Mat &mat, const std::string name);
         void Bresenham(std::vector<Vector2i> &rec, const Vector2i &xy1, const Vector2i &xy2);
         real Gaussian(real mu, real sigma);
         real GaussianPDF(real x, real mu, real sigma);

@@ -1,6 +1,7 @@
 #ifndef _GRIDSLAM_CONFIG_H_
 #define _GRIDSLAM_CONFIG_H_
 
+#define USE_DOUBLE
 #include <Eigen/Core>
 
 namespace gslam {
@@ -11,10 +12,11 @@ namespace gslam {
     using Vector3i = Eigen::Vector3i;
     using Vector3f = Eigen::Vector3f;
     using Vector3d = Eigen::Vector3d;
-    
+
 #ifdef USE_DOUBLE
     using real = double;
     using Vector2 = Vector2d;
+    using Vector3 = Vector3d;
     #define CV_REAL_C1 CV_64FC1
 #else
     using real = float;
