@@ -16,7 +16,7 @@ namespace gslam
         real GaussianPDF(real x, real mu, real sigma);
         static inline real DegToRad(real deg)
         { return deg*3.1415926_r/180.0_r; }
-        std::vector<Vector2> EndPoints(Vector2 pos, real theta, SensorData sdata);
+        std::vector<Vector2> EndPoints(Vector3 pose, SensorData sdata);
         real Deg2Rad(real deg);
     }
 }

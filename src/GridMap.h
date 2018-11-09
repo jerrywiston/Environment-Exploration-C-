@@ -1,3 +1,6 @@
+#ifndef _GRIDSLAM_GRIDMAP_H_
+#define _GRIDSLAM_GRIDMAP_H_
+
 #include <Config.h>
 #include <opencv2/opencv.hpp>
 #include <map>
@@ -69,3 +72,5 @@ namespace gslam {
         
     };
 }
+
+# endif

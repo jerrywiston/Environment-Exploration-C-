@@ -88,14 +88,14 @@ namespace utils
         return 1._r/(std::sqrt(2*3.1415926_r)*sigma)*std::exp(-std::pow((x-mu)/sigma, 2)/2);
     }
 
-    std::vector<Vector2> EndPoints(Vector2 pos, real theta, SensorData sdata)
+    std::vector<Vector2> EndPoints(Vector3 pose, SensorData sdata)
     {
         real inter = (sdata.end_angle - sdata.start_angle) / (sdata.sensor_size-1);
         std::vector<Vector2> endList(sdata.sensor_size);
         for(int i=0; i<sdata.sensor_size; ++i){
-            real angle = theta + sdata.start_angle + i*inter;
-            Vector2 tmp = { pos[0]+sdata.data[i]*cos(Deg2Rad(angle)),
-                            pos[1]+sdata.data[i]*sin(Deg2Rad(angle))};
+            real angle = pose[2] + sdata.start_angle + i*inter;
+            Vector2 tmp = { pose[0]+sdata.data[i]*cos(Deg2Rad(angle-90)),
+                            pose[1]+sdata.data[i]*sin(Deg2Rad(angle-90))};
             //#include <iostream>
             //std::cout<< pos[1] << " " << tmp << std::endl << std::endl;
             endList[i] = tmp;

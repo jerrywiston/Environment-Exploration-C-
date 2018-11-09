@@ -1,50 +1,40 @@
 #include "ParticleFilter.h"
 #include "Utils.h"
+#include "MotionModel.h"
 #include <cassert>
 #include <numeric>
+#include <omp.h>
 
 namespace gslam
 {
-    Particle::Particle(const Vector2 &pos, const GridMap &saved_map)
-        : m_pos(pos), m_gmap(saved_map)
+    Particle::Particle(const Vector3 &pose, const GridMap &saved_map)
+        : m_pose(pose), m_gmap(saved_map)
     {
 
     }
 
     void Particle::mapping(const BotParam &param, const SensorData &readings)
     {
-        real inter = (param.end_angle - param.start_angle) / (param.sensor_size-1);
-        for(int i=0; i<param.sensor_size; i++) {
-            if(readings.data[i] > param.max_dist-1||readings.data[i]<1)
+        auto plist = utils::EndPoints(m_pose, readings);
+        for(int i=0; i<readings.sensor_size; ++i){
+            if(readings.data[i] > readings.max_dist-1 || readings.data[i] < 1)
                 continue;
-            real theta = m_theta + param.start_angle + i * inter;
-            m_gmap.line(
-                m_pos,
-                {m_pos[0]+readings.data[i]*std::cos(utils::DegToRad(theta)), 
-                    m_pos[1]+readings.data[i]*std::sin(utils::DegToRad(theta))}
-            );
+            m_gmap.line({m_pose[0], m_pose[1]},{plist[i][0], plist[i][1]});
         }
     }
 
     void Particle::sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig)
     {
-        Vector2 vec{std::sin(utils::DegToRad(m_theta)), std::cos(utils::DegToRad(m_theta))};
-        real vel = param.velocity;
-        real ang = param.rotate_step;
+        MotionModel mm(0.5,0.5,0.5);
         if(ctl == Control::eForward) {
-            m_pos += Vector2(-vel*vec[0], vel*vec[1]);
+            m_pose = mm.sample(m_pose, param.velocity, 0, 0);
         } else if(ctl == Control::eBackward) {
-            m_pos += Vector2(vel*vec[0], -vel*vec[1]);
+            m_pose = mm.sample(m_pose, -param.velocity, 0, 0);
         } else if(ctl == Control::eTurnLeft) {
-            m_theta += ang;
-            m_theta = std::fmod(m_theta, 360.0_r);
+            m_pose = mm.sample(m_pose, 0, 0, -param.rotate_step);
         } else if(ctl == Control::eTurnRight) {
-            m_theta -= ang;
-            m_theta = std::fmod(m_theta + 360.0_r, 360.0_r);
+            m_pose = mm.sample(m_pose, 0, 0, param.rotate_step);
         }
-
-        m_pos += Vector2(utils::Gaussian(0.0, sig[0]), utils::Gaussian(0.0, sig[1]));
-        m_theta += utils::Gaussian(0.0, sig[2]);
     }
 
     real Particle::nearestDistance(const Vector2 &pos, int wsize, real th) const
@@ -80,9 +70,9 @@ namespace gslam
             if(readings.data[i] > param.max_dist-1||readings.data[i]<1)
                 continue;
             // compute endpoints
-            real theta = m_theta + param.start_angle + i * inter;
-            Vector2 endpoint{m_pos[0]+readings.data[i]*std::cos(utils::DegToRad(theta)), 
-                m_pos[1]+readings.data[i]*std::sin(utils::DegToRad(theta))};
+            real theta = m_pose[2] + param.start_angle + i * inter;
+            Vector2 endpoint{m_pose[0]+readings.data[i]*std::cos(utils::DegToRad(theta)), 
+                m_pose[1]+readings.data[i]*std::sin(utils::DegToRad(theta))};
             
             real dist = nearestDistance(endpoint, 4, 0.2_r);
             q = q * (p_hit * utils::GaussianPDF(0, dist, sig_hit));
@@ -90,33 +80,53 @@ namespace gslam
         return q;
     }
 
-    void ParticleFilter::feed(Control ctl, const SensorData &readings)
+    ParticleFilter::ParticleFilter(const Vector3 &pose, const BotParam &param, const GridMap &saved_map, const int size)
+        : m_param(param), m_size(size)
     {
-        std::vector<real> field(0.0_r, m_particles.size());
-        for(int i=0; i<m_particles.size(); i++) {
-            // Update particle location
-            m_particles[i].sampling(ctl, m_param);
-            field[i] = m_particles[i].calcLikelihood(m_param, readings);
+        Particle p(pose, saved_map);
+        for(int i=0; i<m_size; ++i){
+            m_particles.push_back(p);
+            m_weights.push_back(1.0 / (float)i);
         }
-        // normalize of field array is not needed here
-        resampling(readings, field);
     }
 
-    void ParticleFilter::resampling(const SensorData &readings, const std::vector<real> &weights)
+    real ParticleFilter::feed(Control ctl, const SensorData &readings)
+    {
+        std::vector<real> field(0.0_r, m_particles.size());
+        real n_tmp = 0;
+        #pragma omp parallel for
+        for(int i=0; i<m_size; i++) {
+            // Update particle location
+            m_particles[i].sampling(ctl, m_param);
+            //m_weights[i] = m_particles[i].calcLikelihood(m_param, readings);
+            //m_particles[i].mapping(m_param, readings);
+        }
+        // normalize of field array is not needed here
+        for(int i=0; i<m_size; ++i)
+            n_tmp += m_weights[i];
+        
+        for(int i=0; i<m_size; ++i)
+            m_weights[i] /= n_tmp;
+
+        // Calculate Neff
+        real Neff = 0;
+        for(int i=0; i<m_size; ++i){
+            Neff += m_weights[i] * m_weights[i];
+        }
+        Neff = 1.0 / Neff;
+        return Neff / m_size;
+    }
+
+    void ParticleFilter::resampling()
     {
         assert(weights.size() == m_particles.size());
 
-        std::discrete_distribution<int> distribution{weights.cbegin(), weights.cend()};
+        std::discrete_distribution<int> distribution{m_weights.cbegin(), m_weights.cend()};
         std::vector<int> map_rec(0, m_particles.size());
         std::vector<Particle> new_particles;
         new_particles.reserve(m_particles.size());
-        for(int i=0; i<m_particles.size(); i++) {
+        for(int i=0; i<m_size; i++) {
             int id = distribution(m_generator);
-            if(!map_rec[id]) {
-                // only map high weight particle
-                m_particles[id].mapping(m_param, readings);
-                map_rec[id] = 1;
-            }
             new_particles.push_back(m_particles[id]);
         }
         m_particles = new_particles;

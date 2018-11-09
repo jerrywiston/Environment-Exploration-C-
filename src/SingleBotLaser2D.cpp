@@ -1,5 +1,6 @@
 #include "SingleBotLaser2D.h"
 #include "Utils.h"
+#include "MotionModel.h"
 #include <Eigen/Eigen>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -9,8 +10,8 @@
 
 namespace gslam
 {
-    SingleBotLaser2DGrid::SingleBotLaser2DGrid(const Vector2 &bot_pos, const real theta, const BotParam &param, const std::string &fname)
-        : m_pos(bot_pos), m_theta(theta), m_param(param)
+    SingleBotLaser2DGrid::SingleBotLaser2DGrid(const Vector3 &bot_pose, const BotParam &param, const std::string &fname)
+        : m_pose(bot_pose), m_param(param)
     {
         cv::Mat image;
         image = cv::imread(fname, cv::IMREAD_GRAYSCALE);
@@ -22,11 +23,11 @@ namespace gslam
             }
     }
 
-    real SingleBotLaser2DGrid::rayCast(const Vector2 &pos, const real theta) const
+    real SingleBotLaser2DGrid::rayCast(const Vector3 &pose) const
     {
-        Vector2i origin={std::round(pos[0]), std::round(pos[1])};
-        Vector2i end={std::round(pos[0]+m_param.max_dist*cos(utils::Deg2Rad(theta))),
-                      std::round(pos[1]+m_param.max_dist*sin(utils::Deg2Rad(theta)))};
+        Vector2i origin={std::round(pose[0]), std::round(pose[1])};
+        Vector2i end={std::round(pose[0]+m_param.max_dist*cos(utils::Deg2Rad(pose[2]))),
+                      std::round(pose[1]+m_param.max_dist*sin(utils::Deg2Rad(pose[2])))};
         
         std::vector<Vector2i> plist;
         utils::Bresenham(plist, origin, end);
@@ -35,7 +36,7 @@ namespace gslam
             if(plist[i][1]>=m_imageMap.rows() || plist[i][0]>=m_imageMap.cols() || plist[i][1]<0 || plist[i][0]<0)
                 continue;
             if(m_imageMap(plist[i][1], plist[i][0])<0.8){
-                real tmp = std::pow(float(plist[i][0]) - pos[0], 2) + std::pow(float(plist[i][1]) - pos[1], 2);
+                real tmp = std::pow(float(plist[i][0]) - pose[0], 2) + std::pow(float(plist[i][1]) - pose[1], 2);
                 tmp = std::sqrt(tmp);
                 if(tmp < dist)
                     dist = tmp;
@@ -52,41 +53,31 @@ namespace gslam
         sdata.end_angle = m_param.end_angle;
         sdata.max_dist = m_param.max_dist;
         sdata.data.resize(m_param.sensor_size);
+
         for(int i=0; i<m_param.sensor_size; ++i){
-            real theta = m_theta + m_param.start_angle + i*inter;
-            sdata.data[i] = rayCast(m_pos,theta);
+            real theta = m_pose[2] + m_param.start_angle + i*inter;
+            sdata.data[i] = rayCast({m_pose[0], m_pose[1], theta-90});
         }
         return sdata;
     }
 
     void SingleBotLaser2DGrid::botAction(Control action){
-        real vx = sin(utils::Deg2Rad(m_theta));
-        real vy = cos(utils::Deg2Rad(m_theta));
+        MotionModel mm(0.5,0.5,0.5);
         switch(action){
             case Control::eForward:
-                m_pos[0] -= m_param.velocity*vx;
-                m_pos[1] += m_param.velocity*vy;
+                m_pose = mm.sample(m_pose, m_param.velocity, 0, 0);
                 break;
 
             case Control::eBackward:
-                m_pos[0] += m_param.velocity*vx;
-                m_pos[1] -= m_param.velocity*vy;
+                m_pose = mm.sample(m_pose, -m_param.velocity, 0, 0);
                 break;
             
             case Control::eTurnLeft:
-                m_theta -= m_param.rotate_step;
-                if(m_theta >= 360)
-                    m_theta -= 360;
-                else if(m_theta <0)
-                    m_theta += 360;
+                m_pose = mm.sample(m_pose, 0, 0, -m_param.rotate_step);
                 break;
 
             case Control::eTurnRight:
-                m_theta += m_param.rotate_step;
-                if(m_theta >= 360)
-                    m_theta -= 360;
-                else if(m_theta <0)
-                    m_theta += 360;
+                m_pose = mm.sample(m_pose, 0, 0, m_param.rotate_step);
                 break;
         }
     }

@@ -4,8 +4,10 @@
 #include "Utils.h"
 #include "SingleBotLaser2D.h"
 #include "Type.h"
+#include "ParticleFilter.h"
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <omp.h>
 
 using namespace gslam;
 
@@ -21,50 +23,60 @@ cv::Mat Map2Image(Eigen::MatrixXf &m){
     return img;
 }
 
-cv::Mat Draw(cv::Mat img, Vector2 bot_pos, real theta, BotParam bot_param, SensorData sdata){
-    auto plist = utils::EndPoints(bot_pos, theta, sdata);
+cv::Mat Draw(cv::Mat img, Vector3 bot_pose, BotParam bot_param, SensorData sdata){
+    auto plist = utils::EndPoints(bot_pose, sdata);
 
     for(int i=0; i<plist.size(); ++i)
         cv::line(img, 
-            cv::Point(int(bot_pos[0]), int(bot_pos[1])), 
+            cv::Point(int(bot_pose[0]), int(bot_pose[1])), 
             cv::Point(int(plist[i][0]), int(plist[i][1])),
-            cv::Scalar(255,0,0), 1);
-    cv::circle(img,cv::Point(int(bot_pos[0]), int(bot_pos[1])), 3, cv::Scalar(0,0,255), -1);
+            cv::Scalar(0,255,0), 1);
+    cv::circle(img,cv::Point(int(bot_pose[0]), int(bot_pose[1])), 3, cv::Scalar(0,0,255), -1);
     return img;
 }
 
-void SensorMapping(GridMap &m, Vector2 pos, real theta, SensorData sdata){
-    auto plist = utils::EndPoints(pos, theta, sdata);
+cv::Mat DrawParticle(cv::Mat img, ParticleFilter pf){
+    for(int i=0; i<pf.getSize(); ++i){
+        Vector3f pose = pf.getPose(i);
+        cv::circle(img,cv::Point(int(pose[0]), int(pose[1])), 1, cv::Scalar(255,0,0), -1);
+    }
+    return img;
+}
+
+void SensorMapping(GridMap &m, Vector3 &pose, SensorData sdata){
+    auto plist = utils::EndPoints(pose, sdata);
     for(int i=0; i<sdata.sensor_size; ++i){
         if(sdata.data[i] > sdata.max_dist-1 || sdata.data[i] < 1)
             continue;
-        m.line({pos[0], pos[1]},{plist[i][0], plist[i][1]});
+        m.line({pose[0], pose[1]},{plist[i][0], plist[i][1]});
     }
 }
 
 int main(int argc, char *argv[]) {
-    Vector2 bot_pos = {150.0, 100.0};
-    real theta = (real)0.0;
+    Vector3 bot_pose = {120.0, 80.0, 180.0};
     BotParam bot_param;
-    bot_param.sensor_size = 300;
+    bot_param.sensor_size = 240;
     bot_param.start_angle = -30;
     bot_param.end_angle = 210;
-    bot_param.max_dist = 150;
+    bot_param.max_dist = 130;
     bot_param.velocity = 3;
     bot_param.rotate_step = 6;
-    SingleBotLaser2DGrid env(bot_pos, theta, bot_param, "./bin/map_large.png");
+    SingleBotLaser2DGrid env(bot_pose, bot_param, "./bin/map2.png");
     cv::namedWindow("view", cv::WINDOW_AUTOSIZE);
 
     // Map
     gslam::GridMap gmap({0.4_r, -0.4_r, 5.0_r, -5.0_r});
-    SensorMapping(gmap, bot_pos, theta, env.scan());
+    SensorMapping(gmap, bot_pose, env.scan());
     BoundingBox bb = gmap.getBoundary(); 
     auto map = gmap.getMapProb(bb.min, bb.max);
     gslam::utils::VisualizeGrid(map);
 
+    // Particle Filter
+    ParticleFilter pf(bot_pose, bot_param, gmap, 80);
+
     // Initialize
     cv::Mat img = Map2Image(env.getMap());
-    img = Draw(img, env.getPos(), env.getTheta(), env.getParam(), env.scan());
+    img = Draw(img, env.getPose(), env.getParam(), env.scan());
     cv::imshow( "view", img );
 
     while(true){
@@ -91,11 +103,24 @@ int main(int argc, char *argv[]) {
         }
         if(action != Control::eNone){
             env.botAction(action);
+
+            //particle filter
+            real Neff = pf.feed(action, env.scan());
+            /*
+            std::cout << "Neff: " << Neff << std::endl;
+            if(Neff < 0.5){
+                std::cout << "Resampling ..." << std::endl;
+                pf.resampling();
+                std::cout << "Done !!" << std::endl;
+            }
+            */
+
             cv::Mat img = Map2Image(env.getMap());
-            img = Draw(img, env.getPos(), env.getTheta(), env.getParam(), env.scan());
+            img = Draw(img, env.getPose(), env.getParam(), env.scan());
+            img = DrawParticle(img, pf);
             cv::imshow( "view", img );
 
-            SensorMapping(gmap, env.getPos(), env.getTheta(), env.scan());
+            SensorMapping(gmap, env.getPose(), env.scan());
             BoundingBox bb = gmap.getBoundary(); 
             auto map = gmap.getMapProb(bb.min, bb.max);
             gslam::utils::VisualizeGrid(map);

@@ -15,19 +15,14 @@ namespace gslam
         eBackward=2,
         eTurnLeft=3,
         eTurnRight=4,
-
-        eDown=5,
-        eLeft=6,
-        eRight=7,
-        eUp=8
     };
 
     class SingleBotLaser2DGrid {
     public:
-        SingleBotLaser2DGrid(const Vector2 &bot_pos, const real theta, const BotParam &param,
+        SingleBotLaser2DGrid(const Vector3 &bot_pose, const BotParam &param,
             const std::string &fname);
 
-        real rayCast(const Vector2 &pos, const real theta) const;
+        real rayCast(const Vector3 &pose) const;
 
         SensorData scan() const;
         void botAction(Control action);
@@ -37,12 +32,8 @@ namespace gslam
             return m_imageMap;
         }
 
-        Vector2 getPos(){
-            return m_pos;
-        }
-
-        real getTheta(){
-            return m_theta;
+        Vector3 getPose(){
+            return m_pose;
         }
 
         BotParam getParam(){
@@ -50,8 +41,7 @@ namespace gslam
         }
     private:
         Eigen::MatrixXf m_imageMap;
-        Vector2 m_pos;
-        real m_theta;
+        Vector3 m_pose;
         BotParam m_param;
     };
 }
