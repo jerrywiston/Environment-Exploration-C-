@@ -58,8 +58,8 @@ int main(int argc, char *argv[]) {
     bot_param.sensor_size = 240;
     bot_param.start_angle = -30;
     bot_param.end_angle = 210;
-    bot_param.max_dist = 130;
-    bot_param.velocity = 3;
+    bot_param.max_dist = 150;
+    bot_param.velocity = 6;
     bot_param.rotate_step = 6;
     SingleBotLaser2DGrid env(bot_pose, bot_param, "./bin/map2.png");
     cv::namedWindow("view", cv::WINDOW_AUTOSIZE);
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
     gslam::utils::VisualizeGrid(map, "map_env");
 
     // Particle Filter
-    ParticleFilter pf(bot_pose, bot_param, gmap, 100);
+    ParticleFilter pf(bot_pose, bot_param, gmap, 300);
 
     // Initialize
     cv::Mat img = Map2Image(env.getMap());

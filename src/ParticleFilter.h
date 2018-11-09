@@ -27,6 +27,7 @@ namespace gslam
     private:
         Vector3 m_pose;
         GridMap m_gmap;
+        std::vector<Vector3> m_traj;  
         real nearestDistance(const Vector2 &pos, int wsize, real th) const;
     };
 

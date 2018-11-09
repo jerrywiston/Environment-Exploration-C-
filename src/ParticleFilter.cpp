@@ -10,7 +10,7 @@ namespace gslam
     Particle::Particle(const Vector3 &pose, const GridMap &saved_map)
         : m_pose(pose), m_gmap(saved_map)
     {
-
+        m_traj.push_back(pose);
     }
 
     void Particle::mapping(const BotParam &param, const SensorData &readings)
@@ -25,7 +25,7 @@ namespace gslam
 
     void Particle::sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig)
     {
-        MotionModel mm(0.5,0.5,0.5);
+        MotionModel mm(1,1,1);
         if(ctl == Control::eForward) {
             m_pose = mm.sample(m_pose, param.velocity, 0, 0);
         } else if(ctl == Control::eBackward) {
@@ -35,6 +35,7 @@ namespace gslam
         } else if(ctl == Control::eTurnRight) {
             m_pose = mm.sample(m_pose, 0, 0, param.rotate_step);
         }
+        m_traj.push_back(m_pose);
     }
 
     real Particle::nearestDistance(const Vector2 &pos, int wsize, real th) const
@@ -64,19 +65,20 @@ namespace gslam
     {
         real p_hit = 0.9_r;
         real p_rand = 0.1_r;
-        real sig_hit = 10.0_r;
-        real q = 1.0_r;
+        real sig_hit = 3.0_r;
+        real q = 0.0_r;
         real inter = (param.end_angle - param.start_angle) / (param.sensor_size-1);
         for(int i=0; i<readings.data.size(); i++) {
-            if(readings.data[i] > param.max_dist-1||readings.data[i]<1)
+            if(readings.data[i] > param.max_dist-1||readings.data[i]<1){
                 continue;
+            }
             // compute endpoints
             real theta = m_pose[2] + param.start_angle + i * inter;
             Vector2 endpoint{m_pose[0]+readings.data[i]*std::cos(utils::DegToRad(theta-90)), 
                 m_pose[1]+readings.data[i]*std::sin(utils::DegToRad(theta-90))};
             
-            real dist = nearestDistance(endpoint, 4, 0.2_r);
-            q = 10 * q * (p_hit * utils::GaussianPDF(0, dist, sig_hit) + p_rand/param.max_dist);
+            real dist = nearestDistance(endpoint, 6, 0.2_r);
+            q += std::log(p_hit * utils::GaussianPDF(0, dist, sig_hit) + p_rand/param.max_dist);
         }
         return q;
     }
@@ -93,13 +95,13 @@ namespace gslam
 
     real ParticleFilter::feed(Control ctl, const SensorData &readings)
     {
-        std::vector<real> field;
+        std::vector<real> field(m_size);
         real n_tmp = 0;
-        #pragma omp parallel for
+        #pragma omp parallel for num_threads(16)
         for(int i=0; i<m_size; i++) {
             // Update particle location
             m_particles[i].sampling(ctl, m_param);
-            field.push_back(m_particles[i].calcLikelihood(m_param, readings));
+            field[i] = m_particles[i].calcLikelihood(m_param, readings);
             m_particles[i].mapping(m_param, readings);
         }
         // normalize of field array is not needed here

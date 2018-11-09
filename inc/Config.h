@@ -1,7 +1,6 @@
 #ifndef _GRIDSLAM_CONFIG_H_
 #define _GRIDSLAM_CONFIG_H_
 
-#define USE_DOUBLE
 #include <Eigen/Core>
 
 namespace gslam {
