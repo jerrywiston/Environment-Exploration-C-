@@ -31,7 +31,7 @@ cv::Mat Draw(cv::Mat img, Vector3 bot_pose, BotParam bot_param, SensorData sdata
             cv::Point(int(bot_pose[0]), int(bot_pose[1])), 
             cv::Point(int(plist[i][0]), int(plist[i][1])),
             cv::Scalar(0,255,0), 1);
-    cv::circle(img,cv::Point(int(bot_pose[0]), int(bot_pose[1])), 3, cv::Scalar(0,0,255), -1);
+    cv::circle(img,cv::Point(int(bot_pose[0]), int(bot_pose[1])), 4, cv::Scalar(0,0,255), -1);
     return img;
 }
 
@@ -39,6 +39,16 @@ cv::Mat DrawParticle(cv::Mat img, ParticleFilter pf){
     for(int i=0; i<pf.getSize(); ++i){
         Vector3 pose = pf.getPose(i);
         cv::circle(img,cv::Point(int(pose[0]), int(pose[1])), 1, cv::Scalar(255,0,0), -1);
+    }
+    return img;
+}
+
+cv::Mat DrawTraj(cv::Mat img,  std::vector<Vector3> traj, cv::Scalar color){
+    for(int i=0; i<traj.size()-1; ++i){
+        cv::line(img, 
+            cv::Point(int(traj[i][0]), int(traj[i][1])),
+            cv::Point(int(traj[i+1][0]), int(traj[i+1][1])),
+            color, 2);
     }
     return img;
 }
@@ -61,7 +71,7 @@ int main(int argc, char *argv[]) {
     bot_param.max_dist = 150;
     bot_param.velocity = 6;
     bot_param.rotate_step = 6;
-    SingleBotLaser2DGrid env(bot_pose, bot_param, "./bin/map2.png");
+    SingleBotLaser2DGrid env(bot_pose, bot_param, "./bin/map3.png");
     cv::namedWindow("view", cv::WINDOW_AUTOSIZE);
 
     // Map
@@ -72,7 +82,8 @@ int main(int argc, char *argv[]) {
     gslam::utils::VisualizeGrid(map, "map_env");
 
     // Particle Filter
-    ParticleFilter pf(bot_pose, bot_param, gmap, 300);
+    int particle_size = 100;
+    ParticleFilter pf(bot_pose, bot_param, gmap, particle_size);
 
     // Initialize
     cv::Mat img = Map2Image(env.getMap());
@@ -113,6 +124,9 @@ int main(int argc, char *argv[]) {
             cv::Mat img = Map2Image(env.getMap());
             img = Draw(img, env.getPose(), env.getParam(), env.scan());
             img = DrawParticle(img, pf);
+            for(int i=0; i<particle_size; ++i)
+                img = DrawTraj(img,  pf.getTraj(i), cv::Scalar(255,100,100));
+            img = DrawTraj(img,  env.getTraj(), cv::Scalar(100,100,255));
             cv::imshow( "view", img );
 
             SensorMapping(gmap, env.getPose(), env.scan());
@@ -120,7 +134,8 @@ int main(int argc, char *argv[]) {
             auto map = gmap.getMapProb(bb.min, bb.max);
             gslam::utils::VisualizeGrid(map, "map_env");
 
-            GridMap gmap_p = pf.getParticle(0).getMap();
+            int id = pf.bestSampleId();
+            GridMap gmap_p = pf.getParticle(id).getMap();
             BoundingBox bb2 = gmap_p.getBoundary();
             auto map2 = gmap_p.getMapProb(bb2.min, bb2.max);
             gslam::utils::VisualizeGrid(map2, "map_particle");

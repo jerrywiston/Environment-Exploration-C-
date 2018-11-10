@@ -15,7 +15,7 @@ namespace gslam
         Particle(const Vector3 &pose, const GridMap &saved_map);
         void mapping(const BotParam &param, const SensorData &reading);
         void sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig={0.4_r, 0.4_r, 0.4_r});
-        real calcLikelihood(const BotParam &param, const SensorData &readings) const;
+        real calcLogLikelihoodField(const BotParam &param, const SensorData &readings) const;
         
         Vector3 getPose(){
             return m_pose;
@@ -23,6 +23,10 @@ namespace gslam
 
         GridMap getMap(){
             return m_gmap;
+        }
+
+        std::vector<Vector3> getTraj(){
+            return m_traj;
         }
     private:
         Vector3 m_pose;
@@ -47,6 +51,22 @@ namespace gslam
 
         Particle getParticle(int id){
             return m_particles[id];
+        }
+
+        std::vector<Vector3> getTraj(int id){
+            return m_particles[id].getTraj();
+        }
+
+        int bestSampleId(){
+            real tmp = -1000;
+            int id = 0;
+            for(int i=0; i<m_weights.size(); ++i){
+                if(m_weights[i]>tmp){
+                    tmp = m_weights[i];
+                    id = i;
+                }
+            }
+            return id;
         }
     
     private:

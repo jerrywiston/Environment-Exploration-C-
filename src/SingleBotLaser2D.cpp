@@ -21,6 +21,8 @@ namespace gslam
             for(int j=0; j<image.size().width; ++j){
                 m_imageMap(i,j) = (real)image.at<uchar>(i,j) / 255.0_r;
             }
+        
+        m_traj.push_back(bot_pose);
     }
 
     real SingleBotLaser2DGrid::rayCast(const Vector3 &pose) const
@@ -62,7 +64,7 @@ namespace gslam
     }
 
     void SingleBotLaser2DGrid::botAction(Control action){
-        MotionModel mm(0.5,0.5,0.5);
+        MotionModel mm(0.5,0.5,0.3);
         switch(action){
             case Control::eForward:
                 m_pose = mm.sample(m_pose, m_param.velocity, 0, 0);
@@ -80,5 +82,6 @@ namespace gslam
                 m_pose = mm.sample(m_pose, 0, 0, m_param.rotate_step);
                 break;
         }
+        m_traj.push_back(m_pose);
     }
 }

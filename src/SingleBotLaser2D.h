@@ -39,10 +39,15 @@ namespace gslam
         BotParam getParam(){
             return m_param;
         }
+
+        std::vector<Vector3> getTraj(){
+            return m_traj;
+        }
     private:
         Eigen::MatrixXf m_imageMap;
         Vector3 m_pose;
         BotParam m_param;
+        std::vector <Vector3> m_traj;
     };
 }
 

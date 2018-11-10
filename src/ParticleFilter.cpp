@@ -25,7 +25,7 @@ namespace gslam
 
     void Particle::sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig)
     {
-        MotionModel mm(1,1,1);
+        MotionModel mm(0.5,0.5,0.3);
         if(ctl == Control::eForward) {
             m_pose = mm.sample(m_pose, param.velocity, 0, 0);
         } else if(ctl == Control::eBackward) {
@@ -40,7 +40,7 @@ namespace gslam
 
     real Particle::nearestDistance(const Vector2 &pos, int wsize, real th) const
     {
-        real min_dist = 9999;
+        real min_dist = wsize*wsize;
         Vector2 ans;
         real gsize = m_gmap.gridSize();
         int xx = static_cast<int>(std::round(pos[0]/gsize));
@@ -52,20 +52,19 @@ namespace gslam
                     if(dist < min_dist) {
                         min_dist = dist;
                         ans = {j, i};
-                        
                     }
                 }
                 
             }
         }
-        return std::sqrt(min_dist*gsize);
+        return std::sqrt(min_dist) * gsize;
     }
 
-    real Particle::calcLikelihood(const BotParam &param, const SensorData &readings) const
+    real Particle::calcLogLikelihoodField(const BotParam &param, const SensorData &readings) const
     {
         real p_hit = 0.9_r;
         real p_rand = 0.1_r;
-        real sig_hit = 3.0_r;
+        real sig_hit =10.0_r;
         real q = 0.0_r;
         real inter = (param.end_angle - param.start_angle) / (param.sensor_size-1);
         for(int i=0; i<readings.data.size(); i++) {
@@ -77,8 +76,8 @@ namespace gslam
             Vector2 endpoint{m_pose[0]+readings.data[i]*std::cos(utils::DegToRad(theta-90)), 
                 m_pose[1]+readings.data[i]*std::sin(utils::DegToRad(theta-90))};
             
-            real dist = nearestDistance(endpoint, 6, 0.2_r);
-            q += std::log(p_hit * utils::GaussianPDF(0, dist, sig_hit) + p_rand/param.max_dist);
+            real dist = nearestDistance(endpoint, 5, 0.1_r);
+            q += std::log(p_hit * utils::GaussianPDF(0, dist, sig_hit) + p_rand/param.max_dist);            
         }
         return q;
     }
@@ -97,20 +96,31 @@ namespace gslam
     {
         std::vector<real> field(m_size);
         real n_tmp = 0;
-        #pragma omp parallel for num_threads(16)
+        //#pragma omp parallel for num_threads(16)
         for(int i=0; i<m_size; i++) {
             // Update particle location
             m_particles[i].sampling(ctl, m_param);
-            field[i] = m_particles[i].calcLikelihood(m_param, readings);
+            field[i] = m_particles[i].calcLogLikelihoodField(m_param, readings);
+            //std::cout << field[i] << std::endl;
             m_particles[i].mapping(m_param, readings);
         }
         // normalize of field array is not needed here
+        real normalize_max = -9999;
+        for(int i=0; i<m_size; ++i){
+            if(field[i] > normalize_max)
+                normalize_max = field[i];
+        }
+
         for(int i=0; i<m_size; ++i)
-            n_tmp += field[i];
+            m_weights[i] = std::exp(field[i] - normalize_max);
+
+        real tmp = 0;
+        for(int i=0; i<m_size; ++i)
+            n_tmp += m_weights[i];
         
         if(n_tmp != 0){
             for(int i=0; i<m_size; ++i)
-                m_weights[i] = field[i] / n_tmp;
+                m_weights[i] = m_weights[i] / n_tmp;
         }
 
         // Calculate Neff
