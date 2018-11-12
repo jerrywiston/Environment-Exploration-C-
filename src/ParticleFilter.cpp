@@ -25,7 +25,7 @@ namespace gslam
 
     void Particle::sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig)
     {
-        MotionModel mm(0.5,0.5,0.3);
+        MotionModel mm(0.2,0.2,0.1);
         if(ctl == Control::eForward) {
             m_pose = mm.sample(m_pose, param.velocity, 0, 0);
         } else if(ctl == Control::eBackward) {
@@ -40,7 +40,7 @@ namespace gslam
 
     real Particle::nearestDistance(const Vector2 &pos, int wsize, real th) const
     {
-        real min_dist = wsize*wsize;
+        real min_dist = std::sqrt(wsize*wsize + wsize*wsize);
         Vector2 ans;
         real gsize = m_gmap.gridSize();
         int xx = static_cast<int>(std::round(pos[0]/gsize));
@@ -64,7 +64,7 @@ namespace gslam
     {
         real p_hit = 0.9_r;
         real p_rand = 0.1_r;
-        real sig_hit =10.0_r;
+        real sig_hit = 6.0_r;
         real q = 0.0_r;
         real inter = (param.end_angle - param.start_angle) / (param.sensor_size-1);
         for(int i=0; i<readings.data.size(); i++) {
@@ -76,7 +76,7 @@ namespace gslam
             Vector2 endpoint{m_pose[0]+readings.data[i]*std::cos(utils::DegToRad(theta-90)), 
                 m_pose[1]+readings.data[i]*std::sin(utils::DegToRad(theta-90))};
             
-            real dist = nearestDistance(endpoint, 5, 0.1_r);
+            real dist = nearestDistance(endpoint, 3, 0.2_r);
             q += std::log(p_hit * utils::GaussianPDF(0, dist, sig_hit) + p_rand/param.max_dist);            
         }
         return q;
@@ -92,17 +92,36 @@ namespace gslam
         }
     }
 
+    void Particle::mappingList(const BotParam &param)
+    {
+        for(int j=0; j<m_obsList.size(); ++j){
+            auto plist = utils::EndPoints(m_posList[j], m_obsList[j]);
+            for(int i=0; i<m_obsList[j].sensor_size; ++i){
+                if(m_obsList[j].data[i] > m_obsList[j].max_dist-1 || m_obsList[j].data[i] < 1)
+                    continue;
+                m_gmap.line({m_posList[j][0], m_posList[j][1]},{plist[i][0], plist[i][1]});
+            }
+        }
+    }
+
     real ParticleFilter::feed(Control ctl, const SensorData &readings)
     {
         std::vector<real> field(m_size);
         real n_tmp = 0;
-        //#pragma omp parallel for num_threads(16)
+        m_mapCount++;
+        #pragma omp parallel for num_threads(8)
         for(int i=0; i<m_size; i++) {
             // Update particle location
             m_particles[i].sampling(ctl, m_param);
             field[i] = m_particles[i].calcLogLikelihoodField(m_param, readings);
-            //std::cout << field[i] << std::endl;
             m_particles[i].mapping(m_param, readings);
+            
+            //m_particles[i].addObs(readings);
+            //if(m_mapCount > 2){
+            //    m_particles[i].mappingList(m_param);
+            //    m_particles[i].clearObs();
+            //    m_mapCount = 0;
+            //}
         }
         // normalize of field array is not needed here
         real normalize_max = -9999;
@@ -129,27 +148,18 @@ namespace gslam
             Neff += m_weights[i] * m_weights[i];
         }
         Neff = 1.0 / Neff;
-        //std::cout << ">>>>>" << std::endl;
-        //for(int i=0; i<m_size; ++i)
-        //    std::cout << m_weights[i] << " ";
-        //std::cout << "<<<<<" << std::endl;
         return Neff / m_size;
     }
 
     void ParticleFilter::resampling()
     {
-        //for(int i=0; i<m_size; ++i)
-        //    std::cout << m_weights[i] << " ";
-        //std::cout << std::endl;
         std::discrete_distribution<int> distribution{m_weights.cbegin(), m_weights.cend()};
         std::vector<Particle> new_particles;
         new_particles.reserve(m_particles.size());
         for(int i=0; i<m_size; i++) {
             int id = distribution(m_generator);
-            //std::cout << id << " ";
             new_particles.push_back(m_particles[id]);
         }
-        //std::cout << std::endl;
         m_particles = new_particles;
     }
 }

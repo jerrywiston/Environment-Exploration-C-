@@ -64,7 +64,7 @@ namespace gslam
     }
 
     void SingleBotLaser2DGrid::botAction(Control action){
-        MotionModel mm(0.5,0.5,0.3);
+        MotionModel mm(0.2,0.2,0.1);
         switch(action){
             case Control::eForward:
                 m_pose = mm.sample(m_pose, m_param.velocity, 0, 0);

@@ -28,11 +28,26 @@ namespace gslam
         std::vector<Vector3> getTraj(){
             return m_traj;
         }
+
+        void mappingList(const BotParam &param);
+
+        void addObs(const SensorData &reading){
+            m_obsList.push_back(reading);
+            m_posList.push_back(m_pose);
+        }
+
+        void clearObs(){
+            m_obsList.clear();
+            m_posList.clear();
+        }
     private:
         Vector3 m_pose;
         GridMap m_gmap;
         std::vector<Vector3> m_traj;  
         real nearestDistance(const Vector2 &pos, int wsize, real th) const;
+
+        std::vector<SensorData> m_obsList;
+        std::vector<Vector3> m_posList;
     };
 
     class ParticleFilter {
@@ -75,7 +90,7 @@ namespace gslam
         BotParam m_param;
         std::vector<Particle> m_particles;
         std::default_random_engine m_generator;
-  
+        int m_mapCount = 0;
     };
 }
 

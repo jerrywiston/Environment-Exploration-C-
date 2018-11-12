@@ -3,6 +3,7 @@
 
 #include "Config.h"
 #include "Type.h"
+#include "MotionModel.h"
 #include <vector>
 #include <string>
 #include <Eigen/Eigen>

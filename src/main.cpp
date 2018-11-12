@@ -63,6 +63,7 @@ void SensorMapping(GridMap &m, Vector3 &pose, SensorData sdata){
 }
 
 int main(int argc, char *argv[]) {
+    int particle_size = 100;
     Vector3 bot_pose = {120.0, 80.0, 180.0};
     BotParam bot_param;
     bot_param.sensor_size = 240;
@@ -82,7 +83,6 @@ int main(int argc, char *argv[]) {
     gslam::utils::VisualizeGrid(map, "map_env");
 
     // Particle Filter
-    int particle_size = 100;
     ParticleFilter pf(bot_pose, bot_param, gmap, particle_size);
 
     // Initialize
