@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
     bot_param.max_dist = 150;
     bot_param.velocity = 6;
     bot_param.rotate_step = 6;
-    SingleBotLaser2DGrid env(bot_pose, bot_param, "./bin/map3.png");
+    SingleBotLaser2DGrid env(bot_pose, bot_param, "./bin/map_large.png");
     cv::namedWindow("view", cv::WINDOW_AUTOSIZE);
 
     // Map
