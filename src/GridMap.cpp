@@ -33,6 +33,7 @@ namespace gslam
         return getGridProb(xy);
     }
 
+#ifdef WITH_OPENCV
     cv::Mat GridMap::getMapProb(const Vector2i &xy1, const Vector2i &xy2) const
     {
         cv::Mat ret(cv::Size(xy2[0]-xy1[0], xy2[1]-xy1[1]), CV_REAL_C1);
@@ -43,7 +44,19 @@ namespace gslam
         }
         return ret;
     }
-
+#else
+    Storage2D<real> GridMap::getMapProb(const Vector2i &xy1, const Vector2i &xy2) const
+    {
+        real *data = new real[(xy2[0]-xy1[0])*(xy2[1]-xy1[1])];
+        auto ret = Storage2D<real>::Wrap(xy2[0]-xy1[0], xy2[1]-xy1[1], data);
+        for(int y=xy1[1]; y<xy2[1]; y++) {
+            for(int x=xy1[0]; x<xy2[0]; x++) {
+                *(data++) = getGridProb({x, y});
+            }
+        }
+        return ret;
+    }
+#endif
     void GridMap::line(const Vector2 &xy1_, const Vector2 &xy2_)
     {
         Vector2i xy1 = Vector2i{std::round(xy1_[0]/m_gsize), std::round(xy1_[1]/m_gsize)};
@@ -55,9 +68,9 @@ namespace gslam
         const real half = (MEGAGRID_SIZE-1) / 2;
 
         for(int i=0; i<rec.size(); i++) {
-            real change = m_param.lo_free;
+            real change = m_param.lo_occ;
             if(i>=rec.size()-3)
-                change = m_param.lo_occ;
+                change = m_param.lo_free;
             //std::cout << ">>>" << rec[i] << "\n";
 			Vector2i gridCoord = { std::ceil ((std::abs(rec[i][0]) - half) / MEGAGRID_SIZE),
 				std::ceil((std::abs(rec[i][1]) - half) / MEGAGRID_SIZE )};
@@ -85,5 +98,6 @@ namespace gslam
             m_boundary.max[1] = std::max(rec[i][1], m_boundary.max[1]);
         }
     }
+    
 
 }

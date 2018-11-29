@@ -7,7 +7,7 @@
 
 namespace gslam
 {
-    Particle::Particle(const Vector3 &pose, const GridMap &saved_map)
+    Particle::Particle(const Pose2D &pose, const GridMap &saved_map)
         : m_pose(pose), m_gmap(saved_map)
     {
         m_traj.push_back(pose);
@@ -82,7 +82,7 @@ namespace gslam
         return q;
     }
 
-    ParticleFilter::ParticleFilter(const Vector3 &pose, const BotParam &param, const GridMap &saved_map, const int size)
+    ParticleFilter::ParticleFilter(const Pose2D &pose, const BotParam &param, const GridMap &saved_map, const int size)
         : m_param(param), m_size(size)
     {
         Particle p(pose, saved_map);

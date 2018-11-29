@@ -20,10 +20,12 @@ namespace gslam
 
     class SingleBotLaser2DGrid {
     public:
-        SingleBotLaser2DGrid(const Vector3 &bot_pose, const BotParam &param,
+        SingleBotLaser2DGrid(const Pose2D &bot_pose, const BotParam &param,
             const std::string &fname);
+        SingleBotLaser2DGrid(const Pose2D &bot_pose, const BotParam &param,
+            const Storage2D<uint8_t> &map);
 
-        real rayCast(const Vector3 &pose) const;
+        real rayCast(const Pose2D &pose) const;
 
         SensorData scan() const;
         void botAction(Control action);
@@ -33,7 +35,7 @@ namespace gslam
             return m_imageMap;
         }
 
-        Vector3 getPose(){
+        Pose2D getPose(){
             return m_pose;
         }
 
@@ -41,14 +43,14 @@ namespace gslam
             return m_param;
         }
 
-        std::vector<Vector3> getTraj(){
+        std::vector<Pose2D> getTraj(){
             return m_traj;
         }
     private:
-        Eigen::MatrixXf m_imageMap;
-        Vector3 m_pose;
+        MatrixXf m_imageMap;
+        Pose2D m_pose;
         BotParam m_param;
-        std::vector <Vector3> m_traj;
+        std::vector <Pose2D> m_traj;
     };
 }
 

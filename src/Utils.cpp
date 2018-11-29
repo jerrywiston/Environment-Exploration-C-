@@ -6,7 +6,6 @@
 #include <string>
 
 
-
 namespace gslam
 {
     void swap(real &a, real &b){
@@ -17,6 +16,7 @@ namespace gslam
     
 namespace utils
 {
+#ifdef WITH_OPENCV
     void VisualizeGrid(const cv::Mat &mat, const std::string name)
     {
         assert(mat.type() == CV_REAL_C1);
@@ -25,6 +25,7 @@ namespace utils
         target.convertTo(m, CV_8UC1);
         cv::imshow(name, mat);
     }
+#endif
     //void Line( const float x1, const float y1, const float x2, const float y2)
     void Bresenham(std::vector<Vector2i> &rec, const Vector2i &xy1, const Vector2i &xy2)
     {

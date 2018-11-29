@@ -2,17 +2,21 @@
 #include "Utils.h"
 #include "MotionModel.h"
 #include <Eigen/Eigen>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <cmath>
 #include <iostream>
 
+#ifdef WITH_OPENCV
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#endif
+
 namespace gslam
 {
-    SingleBotLaser2DGrid::SingleBotLaser2DGrid(const Vector3 &bot_pose, const BotParam &param, const std::string &fname)
+    SingleBotLaser2DGrid::SingleBotLaser2DGrid(const Pose2D &bot_pose, const BotParam &param, const std::string &fname)
         : m_pose(bot_pose), m_param(param)
     {
+#ifdef WITH_OPENCV
         cv::Mat image;
         image = cv::imread(fname, cv::IMREAD_GRAYSCALE);
         m_imageMap = Eigen::MatrixXf::Zero(image.size().height, image.size().width);
@@ -21,11 +25,27 @@ namespace gslam
             for(int j=0; j<image.size().width; ++j){
                 m_imageMap(i,j) = (real)image.at<uchar>(i,j) / 255.0_r;
             }
-        
+#endif
         m_traj.push_back(bot_pose);
     }
 
-    real SingleBotLaser2DGrid::rayCast(const Vector3 &pose) const
+    SingleBotLaser2DGrid::SingleBotLaser2DGrid(const Pose2D &bot_pose, const BotParam &param, const Storage2D<uint8_t> &map)
+        : m_pose(bot_pose), m_param(param)
+    {
+        m_imageMap = MatrixXf::Zero(map.rows(), map.cols());
+        
+        auto data = map.data();
+        // TODO: Use Eigen function instead...
+        for(int i=0; i<map.rows(); ++i) {
+            for(int j=0; j<map.cols(); ++j){
+                m_imageMap(i,j) = *(data++) / 255.0f;
+            }
+        }
+
+        m_traj.push_back(bot_pose);
+    }
+
+    real SingleBotLaser2DGrid::rayCast(const Pose2D &pose) const
     {
         Vector2i origin={std::round(pose[0]), std::round(pose[1])};
         Vector2i end={std::round(pose[0]+m_param.max_dist*cos(utils::Deg2Rad(pose[2]))),

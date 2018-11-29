@@ -1,10 +1,12 @@
-#ifndef _GRIDSLAM_GRIDMAP_H_
-#define _GRIDSLAM_GRIDMAP_H_
-
-#include <Config.h>
-#include <opencv2/opencv.hpp>
+#ifndef _GSLAM_GRIDMAP_H_
+#define _GSLAM_GRIDMAP_H_
+#include <Type.h>
 #include <map>
 #include <cstring>
+
+#ifdef WITH_OPENCV
+#include <opencv2/opencv.hpp>
+#endif
 
 struct CmpVector2 {
     template <class T>
@@ -48,10 +50,22 @@ namespace gslam {
         real getGridProb(const Vector2i &pos) const;
         real getCoordProb(const Vector2 &pos) const;
 
+#ifdef WITH_OPENCV
         // [xy1, xy2)
         cv::Mat getMapProb(const Vector2i &xy1, const Vector2i &xy2) const;
         // boundary
-        cv::Mat getMapProb() const;
+        cv::Mat getMapProb() const
+        { return getMapProb(m_boundary.min, m_boundary.max); }
+#else
+        Storage2D<real> getMapProb(const Vector2i &xy1, const Vector2i &xy2) const;
+        Storage2D<real> getMapProb() const
+        {
+            if(m_boundary.max[0] < m_boundary.min[0])
+                return Storage2D<real>::Wrap(0, 0, nullptr);
+            else
+                return getMapProb(m_boundary.min, m_boundary.max); 
+        }
+#endif
         void line(const Vector2 &xy1, const Vector2 &xy2);
 
         real gridSize() const
@@ -73,4 +87,4 @@ namespace gslam {
     };
 }
 
-# endif
+#endif

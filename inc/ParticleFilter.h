@@ -6,18 +6,19 @@
 #include "SingleBotLaser2D.h"
 #include "MotionModel.h"
 #include <random>
+#include <array>
 
 namespace gslam
 {
 
     class Particle {
     public:
-        Particle(const Vector3 &pose, const GridMap &saved_map);
+        Particle(const Pose2D &pose, const GridMap &saved_map);
         void mapping(const BotParam &param, const SensorData &reading);
         void sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig={0.4_r, 0.4_r, 0.4_r});
         real calcLogLikelihoodField(const BotParam &param, const SensorData &readings) const;
         
-        Vector3 getPose(){
+        Pose2D getPose(){
             return m_pose;
         }
 
@@ -25,7 +26,7 @@ namespace gslam
             return m_gmap;
         }
 
-        std::vector<Vector3> getTraj(){
+        std::vector<Pose2D> getTraj(){
             return m_traj;
         }
 
@@ -41,18 +42,18 @@ namespace gslam
             m_posList.clear();
         }
     private:
-        Vector3 m_pose;
+        Pose2D m_pose;
         GridMap m_gmap;
-        std::vector<Vector3> m_traj;  
+        std::vector<Pose2D> m_traj;  
         real nearestDistance(const Vector2 &pos, int wsize, real th) const;
 
         std::vector<SensorData> m_obsList;
-        std::vector<Vector3> m_posList;
+        std::vector<Pose2D> m_posList;
     };
 
     class ParticleFilter {
     public:
-        ParticleFilter(const Vector3 &pose, const BotParam &param, const GridMap &saved_map, const int size);
+        ParticleFilter(const Pose2D &pose, const BotParam &param, const GridMap &saved_map, const int size);
         real feed(Control ctl, const SensorData &readings);
         void resampling();
         
@@ -68,7 +69,7 @@ namespace gslam
             return m_particles[id];
         }
 
-        std::vector<Vector3> getTraj(int id){
+        std::vector<Pose2D> getTraj(int id){
             return m_particles[id].getTraj();
         }
 

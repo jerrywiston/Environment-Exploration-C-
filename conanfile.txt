@@ -1,9 +1,8 @@
 [requires]
-opencv/3.4.1@camposs/stable
 eigen/3.3.5@conan/stable
+fmt/5.2.1@bincrafters/stable
 
 [options]
-opencv:shared=True
 
 [generators]
 cmake

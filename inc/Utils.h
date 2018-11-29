@@ -2,7 +2,9 @@
 #define _GRIDSLAM_UTILS_H_
 
 #include <vector>
+#ifdef WITH_OPENCV
 #include <opencv2/opencv.hpp>
+#endif
 #include "Config.h"
 #include "Type.h"
 #include <string>
@@ -11,7 +13,9 @@ namespace gslam
 {
     namespace utils
     {
+#ifdef WITH_OPENCV
         void VisualizeGrid(const cv::Mat &mat, const std::string name);
+#endif
         void Bresenham(std::vector<Vector2i> &rec, const Vector2i &xy1, const Vector2i &xy2);
         real Gaussian(real mu, real sigma);
         real GaussianPDF(real x, real mu, real sigma);
