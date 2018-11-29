@@ -83,8 +83,9 @@ namespace gslam
         return sdata;
     }
 
-    void SingleBotLaser2DGrid::botAction(Control action){
+    bool SingleBotLaser2DGrid::botAction(Control action){
         MotionModel mm(0.2,0.2,0.1);
+        Pose2D org_pose = m_pose;
         switch(action){
             case Control::eForward:
                 m_pose = mm.sample(m_pose, m_param.velocity, 0, 0);
@@ -102,6 +103,23 @@ namespace gslam
                 m_pose = mm.sample(m_pose, 0, 0, m_param.rotate_step);
                 break;
         }
+        std::vector<Vector2i> rec;
+        utils::Bresenham(rec, {org_pose[0], org_pose[1]}, {m_pose[0], m_pose[1]});
+        for(auto &r: rec) {
+            
+            if(r[1] < 0 || r[1] > m_imageMap.rows() || r[0] < 0 || r[0] > m_imageMap.cols()) {
+                // Out of range, restore pose!
+                m_pose = org_pose;
+                return false;
+            }
+            if(m_imageMap(r[1], r[0]) < 0.5f) {
+                // blocked by something, restore pose!
+                m_pose = org_pose;
+                return false;
+            }
+        }
+
         m_traj.push_back(m_pose);
+        return true;
     }
 }

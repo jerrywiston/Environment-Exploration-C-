@@ -28,7 +28,7 @@ namespace gslam
         real rayCast(const Pose2D &pose) const;
 
         SensorData scan() const;
-        void botAction(Control action);
+        bool botAction(Control action);
 
         // Get Function
         Eigen::MatrixXf getMap(){

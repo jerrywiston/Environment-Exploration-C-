@@ -113,7 +113,7 @@ PYBIND11_MODULE(gslam, m) {
                 "data"_a=scan.data);
         })
         .def("action", [] (gslam::SingleBotLaser2DGrid &instance, int action) {
-            instance.botAction(static_cast<gslam::Control>(action));
+            return instance.botAction(static_cast<gslam::Control>(action));
         })
         .def_property_readonly("pose", [] (gslam::SingleBotLaser2DGrid &instance) {
             auto pose = instance.getPose();

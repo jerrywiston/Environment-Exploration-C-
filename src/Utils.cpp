@@ -30,6 +30,8 @@ namespace utils
     void Bresenham(std::vector<Vector2i> &rec, const Vector2i &xy1, const Vector2i &xy2)
     {
         rec.clear();
+        if(xy1 == xy2)
+            return;
         real x1 = (real)xy1[0];
         real y1 = (real)xy1[1];
         real x2 = (real)xy2[0];
