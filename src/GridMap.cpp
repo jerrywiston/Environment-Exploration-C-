@@ -22,7 +22,7 @@ namespace gslam
         if(it != m_mmap.cend()) {
             Vector2i girdLeftTop = gridCoord * MEGAGRID_SIZE - Vector2i{half, half};
             real tmp = it->second(pos-girdLeftTop);
-            return exp(tmp) / (1+exp(tmp));
+            return std::exp(tmp) / (1+std::exp(tmp));
         }
         return 0.5_r;
     }
@@ -57,8 +57,9 @@ namespace gslam
         return ret;
     }
 #endif
-    void GridMap::line(const Vector2 &xy1_, const Vector2 &xy2_)
+    real GridMap::line(const Vector2 &xy1_, const Vector2 &xy2_)
     {
+        real delta_info = 0.0_r;
         Vector2i xy1 = Vector2i{std::round(xy1_[0]/m_gsize), std::round(xy1_[1]/m_gsize)};
         Vector2i xy2 = Vector2i{std::round(xy2_[0]/m_gsize), std::round(xy2_[1]/m_gsize)};
 
@@ -92,11 +93,14 @@ namespace gslam
                 auto &newmega = m_mmap[gridCoord];
                 newmega(pp) = change;
             }
+            real p_x = std::exp(change)/(1+std::exp(change));
+            delta_info += p_x*std::log(p_x);
             m_boundary.min[0] = std::min(rec[i][0], m_boundary.min[0]);
             m_boundary.min[1] = std::min(rec[i][1], m_boundary.min[1]);
             m_boundary.max[0] = std::max(rec[i][0], m_boundary.max[0]);
             m_boundary.max[1] = std::max(rec[i][1], m_boundary.max[1]);
         }
+        return delta_info;
     }
     
 

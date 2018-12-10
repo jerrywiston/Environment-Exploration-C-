@@ -66,7 +66,8 @@ namespace gslam {
                 return getMapProb(m_boundary.min, m_boundary.max); 
         }
 #endif
-        void line(const Vector2 &xy1, const Vector2 &xy2);
+        //
+        real line(const Vector2 &xy1, const Vector2 &xy2);
 
         real gridSize() const
         { return m_gsize; }

@@ -60,7 +60,8 @@ PYBIND11_MODULE(gslam, m) {
             
             auto mat = instance.getMapProb({std::get<0>(xy1), std::get<1>(xy1)}, {std::get<0>(xy2), std::get<1>(xy2)});
             py::capsule free_when_done(mat.data(), [](void *f) {
-                delete[] f;
+                // reinterpret_cast to remove warnings
+                delete[] reinterpret_cast<uint8_t *>(f);
             });
             
             return py::array_t<gslam::real>(
@@ -72,7 +73,7 @@ PYBIND11_MODULE(gslam, m) {
         .def("getWholeMapProb", [](gslam::GridMap &instance) {
             auto mat = instance.getMapProb();
             py::capsule free_when_done(mat.data(), [](void *f) {
-                delete[] f;
+                delete[] reinterpret_cast<uint8_t *>(f);;
             });
             
             return py::array_t<gslam::real>(
