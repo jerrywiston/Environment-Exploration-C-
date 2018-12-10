@@ -6,6 +6,7 @@ find_package(Python 3.6 REQUIRED)
 add_subdirectory(pybind11)
 
 add_definitions(-DUSE_DOUBLE)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 #add_definitions(-DWITH_OPENCV)
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
