@@ -51,11 +51,11 @@ PYBIND11_MODULE(gslam, m) {
 
 
     py::class_<gslam::GridMap>(m, "GridMap")
-        .def("__init__", [](gslam::GridMap &instance, const std::vector<gslam::real> &params, gslam::real gsize) {
+        .def(py::init([](const std::vector<gslam::real> &params, gslam::real gsize) {
             if (params.size() != 4)
                 throw std::runtime_error("params must be [locc, free, max, min].");
-            new (&instance) gslam::GridMap({params[0], params[1], params[2], params[3]}, gsize);
-        }, py::arg("params"), py::arg("gsize")=1.0_r)
+            return new gslam::GridMap({params[0], params[1], params[2], params[3]}, gsize);
+        }), py::arg("params"), py::arg("gsize")=1.0_r)
         .def("getMapProb", [] (gslam::GridMap &instance, const std::tuple<int, int> &xy1, const std::tuple<int, int> &xy2) {
             
             auto mat = instance.getMapProb({std::get<0>(xy1), std::get<1>(xy1)}, {std::get<0>(xy2), std::get<1>(xy2)});
@@ -87,8 +87,7 @@ PYBIND11_MODULE(gslam, m) {
         });
 
     py::class_<gslam::SingleBotLaser2DGrid>(m, "SingleBotLaser2DGrid")
-        .def("__init__", [] (gslam::SingleBotLaser2DGrid &instance, 
-            const std::tuple<gslam::real, gslam::real, gslam::real> &pose, 
+        .def(py::init([] (const std::tuple<gslam::real, gslam::real, gslam::real> &pose, 
             py::array_t<uint8_t> map, py::dict d) {
             gslam::BotParam param;
             param.sensor_size = d["sensor_size"].cast<int>();
@@ -102,8 +101,8 @@ PYBIND11_MODULE(gslam, m) {
             if(info.ndim != 2)
                 throw std::runtime_error("Number of map dimensions is not 2");
             auto wrapped = gslam::Storage2D<uint8_t>::Wrap(info.shape[1], info.shape[0], reinterpret_cast<uint8_t *>(info.ptr));
-            new (&instance) gslam::SingleBotLaser2DGrid({std::get<0>(pose), std::get<1>(pose), std::get<2>(pose)}, param, wrapped);
-        })
+            return new gslam::SingleBotLaser2DGrid({std::get<0>(pose), std::get<1>(pose), std::get<2>(pose)}, param, wrapped);
+        }))
         .def("scan", [] (gslam::SingleBotLaser2DGrid &instance) {
             auto scan = instance.scan();
             using namespace pybind11::literals;
@@ -122,8 +121,7 @@ PYBIND11_MODULE(gslam, m) {
         });
 
     py::class_<gslam::ParticleFilter>(m, "ParticleFilter")
-        .def("__init__", [] (gslam::ParticleFilter &instance,
-            const std::tuple<gslam::real, gslam::real, gslam::real> &pose, 
+        .def(py::init([] (const std::tuple<gslam::real, gslam::real, gslam::real> &pose, 
             py::dict d, 
             const gslam::GridMap &saved_map, 
             const int size) {
@@ -134,8 +132,8 @@ PYBIND11_MODULE(gslam, m) {
             param.max_dist = d["max_dist"].cast<gslam::real>();
             param.velocity = d["velocity"].cast<gslam::real>();
             param.rotate_step = d["rotate_step"].cast<gslam::real>();
-            new (&instance) gslam::ParticleFilter({std::get<0>(pose), std::get<1>(pose), std::get<2>(pose)}, param, saved_map, size);
-        })
+            return gslam::ParticleFilter({std::get<0>(pose), std::get<1>(pose), std::get<2>(pose)}, param, saved_map, size);
+        }))
         .def("feed", [] (gslam::ParticleFilter &instance, int action, py::dict d) {
             gslam::SensorData readings;
             readings.sensor_size = d["sensor_size"].cast<int>();
@@ -146,7 +144,8 @@ PYBIND11_MODULE(gslam, m) {
             return instance.feed(static_cast<gslam::Control>(action), readings);
         })
         .def("resampling", &gslam::ParticleFilter::resampling)
-        .def("bestSampleId", &gslam::ParticleFilter::bestSampleId);
+        .def("bestSampleId", &gslam::ParticleFilter::bestSampleId)
+        .def("getParticle", &gslam::ParticleFilter::getParticle);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;
