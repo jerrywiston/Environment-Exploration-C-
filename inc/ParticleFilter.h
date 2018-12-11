@@ -14,6 +14,7 @@ namespace gslam
     class Particle {
     public:
         Particle(const Pose2D &pose, const GridMap &saved_map);
+        ~Particle();
         void mapping(const BotParam &param, const SensorData &reading);
         void sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig={0.4_r, 0.4_r, 0.4_r});
         real calcLogLikelihoodField(const BotParam &param, const SensorData &readings) const;
@@ -22,11 +23,11 @@ namespace gslam
             return m_pose;
         }
 
-        GridMap getMap(){
+        GridMap &getMap(){
             return m_gmap;
         }
 
-        std::vector<Pose2D> getTraj(){
+        std::vector<Pose2D> &getTraj(){
             return m_traj;
         }
 
@@ -65,10 +66,12 @@ namespace gslam
             return m_particles[id].getPose();
         }
 
-        Particle getParticle(int id){
+        // We don't use reference since the particle may be removed.
+        Particle &getParticle(int id){
             return m_particles[id];
         }
 
+        // this function will be removed
         std::vector<Pose2D> getTraj(int id){
             return m_particles[id].getTraj();
         }

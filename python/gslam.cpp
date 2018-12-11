@@ -83,7 +83,7 @@ PYBIND11_MODULE(gslam, m) {
                 free_when_done); // numpy array references this parent
         })
         .def("line", [] (gslam::GridMap &instance, const std::tuple<gslam::real, gslam::real> &xy1, const std::tuple<gslam::real, gslam::real> &xy2) {
-            instance.line({std::get<0>(xy1), std::get<1>(xy1)}, {std::get<0>(xy2), std::get<1>(xy2)});
+            return instance.line({std::get<0>(xy1), std::get<1>(xy1)}, {std::get<0>(xy2), std::get<1>(xy2)});
         });
 
     py::class_<gslam::SingleBotLaser2DGrid>(m, "SingleBotLaser2DGrid")
@@ -145,8 +145,23 @@ PYBIND11_MODULE(gslam, m) {
         })
         .def("resampling", &gslam::ParticleFilter::resampling)
         .def("bestSampleId", &gslam::ParticleFilter::bestSampleId)
-        .def("getParticle", &gslam::ParticleFilter::getParticle);
+        .def("getParticle", &gslam::ParticleFilter::getParticle, py::return_value_policy::reference);
+    py::class_<gslam::Particle>(m, "Particle")
+        .def("getMap", &gslam::Particle::getMap, py::return_value_policy::reference)
+        .def("getTraj", [] (gslam::Particle &instance) {
+            auto &traj = instance.getTraj();
 
+            py::capsule free_when_done(traj.data(), [](void *f) {
+                std::cerr<<"Traj array freed.\n";
+            });
+
+
+            return py::array_t<gslam::real>(
+                {static_cast<int>(traj.size()), 3}, // Pose2D (x y theta)
+                {3*sizeof(gslam::real), sizeof(gslam::real)}, // C-style contiguous strides for double
+                reinterpret_cast<const gslam::real *>(traj.data())
+                , free_when_done); // numpy array references this parent
+        });
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;
 #else

@@ -94,7 +94,7 @@ namespace gslam
                 newmega(pp) = change;
             }
             real p_x = std::exp(change)/(1+std::exp(change));
-            delta_info += p_x*std::log(p_x);
+            delta_info += -p_x*std::log(p_x);
             m_boundary.min[0] = std::min(rec[i][0], m_boundary.min[0]);
             m_boundary.min[1] = std::min(rec[i][1], m_boundary.min[1]);
             m_boundary.max[0] = std::max(rec[i][0], m_boundary.max[0]);

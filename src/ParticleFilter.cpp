@@ -1,6 +1,7 @@
 #include "ParticleFilter.h"
 #include "Utils.h"
 #include "MotionModel.h"
+#include <iostream>
 #include <cassert>
 #include <numeric>
 #include <omp.h>
@@ -11,6 +12,11 @@ namespace gslam
         : m_pose(pose), m_gmap(saved_map)
     {
         m_traj.push_back(pose);
+    }
+
+    Particle::~Particle()
+    {
+        std::cerr<<"I am deleted!"<<std::hex<<m_traj.data();
     }
 
     void Particle::mapping(const BotParam &param, const SensorData &readings)
@@ -85,9 +91,10 @@ namespace gslam
     ParticleFilter::ParticleFilter(const Pose2D &pose, const BotParam &param, const GridMap &saved_map, const int size)
         : m_param(param), m_size(size)
     {
-        Particle p(pose, saved_map);
+        m_particles.reserve(m_size);
+        m_weights.reserve(m_size);
         for(int i=0; i<m_size; ++i){
-            m_particles.push_back(p);
+            m_particles.emplace_back(pose, saved_map);
             m_weights.push_back(1.0 / (float)m_size);
         }
     }

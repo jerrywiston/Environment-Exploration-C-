@@ -6,8 +6,16 @@ find_package(Python 3.6 COMPONENTS Development REQUIRED)
 message(Error ${PYTHON_INCLUDE_DIRS})
 add_subdirectory(pybind11)
 
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 add_definitions(-DUSE_DOUBLE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 #add_definitions(-DWITH_OPENCV)
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
