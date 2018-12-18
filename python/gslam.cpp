@@ -82,6 +82,18 @@ PYBIND11_MODULE(gslam, m) {
                 mat.data(), // the data pointer
                 free_when_done); // numpy array references this parent
         })
+        .def("getObserv", [](gslam::GridMap &instance, const std::tuple<gslam::real, gslam::real> &pos, gslam::real theta, int lx, int ly) {
+            auto mat = instance.getObserv({std::get<0>(pos), std::get<1>(pos)}, theta, lx, ly);
+            py::capsule free_when_done(mat.data(), [](void *f) {
+                delete[] reinterpret_cast<uint8_t *>(f);;
+            });
+            
+            return py::array_t<gslam::real>(
+                {mat.rows(), mat.cols()}, // shape
+                {mat.cols()*sizeof(gslam::real), sizeof(gslam::real)}, // C-style contiguous strides for double
+                mat.data(), // the data pointer
+                free_when_done); // numpy array references this parent
+        })
         .def("line", [] (gslam::GridMap &instance, const std::tuple<gslam::real, gslam::real> &xy1, const std::tuple<gslam::real, gslam::real> &xy2) {
             return instance.line({std::get<0>(xy1), std::get<1>(xy1)}, {std::get<0>(xy2), std::get<1>(xy2)});
         });
@@ -152,7 +164,7 @@ PYBIND11_MODULE(gslam, m) {
             auto &traj = instance.getTraj();
 
             py::capsule free_when_done(traj.data(), [](void *f) {
-                std::cerr<<"Traj array freed.\n";
+                //std::cerr<<"Traj array freed.\n";
             });
 
 

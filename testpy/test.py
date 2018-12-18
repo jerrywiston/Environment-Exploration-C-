@@ -58,6 +58,10 @@ while(1):
         bp = pf.getParticle(bid)
 
         gain = Viewer.SensorMapping(grid, pose, scan['data'], pyparam)
+        print(gain)
+        mmmm = grid.getObserv((pose[0], pose[1]), pose[2], 32, 32)
+        mmmm = Viewer.Map2Image(mmmm)
+        cv2.imshow('mmmm', mmmm)
         img = Viewer.DrawEnv(im, 1.0, pose, scan['data'], pyparam)
 
         for i in range(100):

@@ -16,7 +16,7 @@ namespace gslam
 
     Particle::~Particle()
     {
-        std::cerr<<"I am deleted!"<<std::hex<<m_traj.data();
+        //std::cerr<<"I am deleted!"<<std::hex<<m_traj.data();
     }
 
     void Particle::mapping(const BotParam &param, const SensorData &readings)

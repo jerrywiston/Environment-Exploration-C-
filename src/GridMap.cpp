@@ -45,6 +45,22 @@ namespace gslam
         return ret;
     }
 #else
+    Storage2D<real> GridMap::getObserv(const Vector2i &xy, real theta, int lx, int ly) const
+    {
+        assert(lx > 0 && ly > 0);
+        Vector2i xy_ = {std::round(xy[0]/m_gsize), std::round(xy[1]/m_gsize)};
+        real rad = utils::Deg2Rad(theta + 90._r);
+        real *data = new real[lx*2 * ly*2];
+        int c = 0;
+        for(int i=-ly; i<ly; i++) {
+            for(int j=-lx; j<lx; j++) {
+                Vector2i sp = {std::round(xy[0]+j*std::cos(rad)-i*std::sin(rad)), std::round(xy[1]+j*std::sin(rad)+i*std::cos(rad))};
+                data[c++] = getGridProb(sp);
+            }
+        }
+        return Storage2D<real>::Wrap(lx*2, ly*2, data);
+    }
+
     Storage2D<real> GridMap::getMapProb(const Vector2i &xy1, const Vector2i &xy2) const
     {
         real *data = new real[(xy2[0]-xy1[0])*(xy2[1]-xy1[1])];
@@ -81,20 +97,24 @@ namespace gslam
             Vector2i girdLeftTop = gridCoord * MEGAGRID_SIZE - Vector2i{half, half};
 			Vector2i pp = rec[i] - girdLeftTop;
             auto it = m_mmap.find(gridCoord);
+            real old_grid_p = 0.5_r;
+            real new_grid_p = 0;
             if(it != m_mmap.cend()) {
                 auto &grid_val = it->second(rec[i]-girdLeftTop);
+                old_grid_p = std::exp(grid_val)/(1+std::exp(grid_val));
                 grid_val += change;
                 if(grid_val > m_param.lo_max)
                     grid_val = m_param.lo_max;
                 else if(grid_val < m_param.lo_min)
                     grid_val = m_param.lo_min;
+                new_grid_p = std::exp(grid_val)/(1+std::exp(grid_val));
             } else {
                 
                 auto &newmega = m_mmap[gridCoord];
                 newmega(pp) = change;
+                new_grid_p = std::exp(change)/(1+std::exp(change));
             }
-            real p_x = std::exp(change)/(1+std::exp(change));
-            delta_info += -p_x*std::log(p_x);
+            delta_info += -new_grid_p*std::log(new_grid_p) - (-old_grid_p*std::log(old_grid_p));
             m_boundary.min[0] = std::min(rec[i][0], m_boundary.min[0]);
             m_boundary.min[1] = std::min(rec[i][1], m_boundary.min[1]);
             m_boundary.max[0] = std::max(rec[i][0], m_boundary.max[0]);

@@ -49,7 +49,6 @@ namespace gslam {
 
         real getGridProb(const Vector2i &pos) const;
         real getCoordProb(const Vector2 &pos) const;
-
 #ifdef WITH_OPENCV
         // [xy1, xy2)
         cv::Mat getMapProb(const Vector2i &xy1, const Vector2i &xy2) const;
@@ -57,6 +56,7 @@ namespace gslam {
         cv::Mat getMapProb() const
         { return getMapProb(m_boundary.min, m_boundary.max); }
 #else
+        Storage2D<real> getObserv(const Vector2i &xy, real theta, int lx, int ly) const;
         Storage2D<real> getMapProb(const Vector2i &xy1, const Vector2i &xy2) const;
         Storage2D<real> getMapProb() const
         {
