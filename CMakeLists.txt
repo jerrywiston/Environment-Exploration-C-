@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(GridSLAM)
 find_package(OpenMP REQUIRED)
-find_package(Python 3.6 REQUIRED)
+#find_package(Python 3.5 REQUIRED)
 add_subdirectory(pybind11)
 
 add_definitions(-DUSE_DOUBLE)

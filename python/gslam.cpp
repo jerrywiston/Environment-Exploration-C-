@@ -69,6 +69,9 @@ PYBIND11_MODULE(gslam, m) {
                 mat.data(), // the data pointer
                 free_when_done); // numpy array references this parent
         })
+        .def("getGridProb", [] (gslam::GridMap &instance, const std::tuple<int, int> &xy) {
+            return instance.getGridProb({std::get<0>(xy), std::get<1>(xy)});
+        })
         .def("getWholeMapProb", [](gslam::GridMap &instance) {
             auto mat = instance.getMapProb();
             py::capsule free_when_done(mat.data(), [](void *f) {

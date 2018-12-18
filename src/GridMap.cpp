@@ -65,7 +65,7 @@ namespace gslam
         std::vector<Vector2i> rec;
         utils::Bresenham(rec, xy1, xy2);
 
-        const real half = (MEGAGRID_SIZE-1) / 2;
+        constexpr real half = (MEGAGRID_SIZE-1) / 2;
 
         for(int i=0; i<rec.size(); i++) {
             real change = m_param.lo_occ;
