@@ -84,7 +84,7 @@ namespace gslam
     }
 
     bool SingleBotLaser2DGrid::botAction(Control action){
-        MotionModel mm(0.2,0.2,0.1);
+        MotionModel mm(0.2,0.1,0.1);
         Pose2D org_pose = m_pose;
         switch(action){
             case Control::eForward:

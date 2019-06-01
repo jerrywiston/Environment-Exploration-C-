@@ -1,0 +1,7 @@
+README.md
+setup.py
+gslam.egg-info/PKG-INFO
+gslam.egg-info/SOURCES.txt
+gslam.egg-info/dependency_links.txt
+gslam.egg-info/not-zip-safe
+gslam.egg-info/top_level.txt

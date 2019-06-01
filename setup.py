@@ -59,7 +59,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='gslam',
-    version='0.0.1',
+    version='0.0.2',
     author='Tim Hsu',
     author_email='tim37021@gmail.com',
     description='GSLAM package for python',

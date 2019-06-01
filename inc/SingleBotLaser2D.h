@@ -46,6 +46,12 @@ namespace gslam
         std::vector<Pose2D> getTraj(){
             return m_traj;
         }
+
+        void setPose(const Pose2D &pose) {
+            m_pose = pose;
+            m_traj.clear();
+            m_traj.push_back(pose);
+        }
     private:
         MatrixXf m_imageMap;
         Pose2D m_pose;
