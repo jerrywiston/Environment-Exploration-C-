@@ -29,6 +29,7 @@ namespace gslam
 
         SensorData scan() const;
         bool botAction(Control action);
+        bool continuousAction(real t, real r);
 
         // Get Function
         Eigen::MatrixXf getMap(){

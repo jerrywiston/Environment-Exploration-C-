@@ -133,6 +133,9 @@ PYBIND11_MODULE(gslam, m) {
         .def("action", [] (gslam::SingleBotLaser2DGrid &instance, int action) {
             return instance.botAction(static_cast<gslam::Control>(action));
         })
+        .def("continuous_action", [] (gslam::SingleBotLaser2DGrid &instance, gslam::real t, gslam::real r) {
+            return instance.continuousAction(t, r);
+        })
         .def_property_readonly("pose", [] (gslam::SingleBotLaser2DGrid &instance) {
             auto pose = instance.getPose();
             return std::make_tuple(pose[0], pose[1], pose[2]);

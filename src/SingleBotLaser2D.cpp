@@ -122,4 +122,28 @@ namespace gslam
         m_traj.push_back(m_pose);
         return true;
     }
+
+    bool SingleBotLaser2DGrid::continuousAction(real t, real r){
+        MotionModel mm(0.2,0.1,0.1);
+        Pose2D org_pose = m_pose;
+        m_pose = mm.sample(m_pose, t, 0, r);
+        std::vector<Vector2i> rec;
+        utils::Bresenham(rec, {org_pose[0], org_pose[1]}, {m_pose[0], m_pose[1]});
+        for(auto &r: rec) {
+            
+            if(r[1] < 0 || r[1] > m_imageMap.rows() || r[0] < 0 || r[0] > m_imageMap.cols()) {
+                // Out of range, restore pose!
+                m_pose = org_pose;
+                return false;
+            }
+            if(m_imageMap(r[1], r[0]) < 0.5f) {
+                // blocked by something, restore pose!
+                m_pose = org_pose;
+                return false;
+            }
+        }
+
+        m_traj.push_back(m_pose);
+        return true;
+    }
 }
