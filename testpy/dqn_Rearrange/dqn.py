@@ -72,11 +72,11 @@ class DeepQNetwork():
         r_ts = torch.FloatTensor(np.array(r_batch)).to(device)
         end_ts = torch.FloatTensor(np.array(end_batch)).to(device)
 
-        q_eval = self.qnet_eval.forward(s_batch, device).gather(1, a_ts.unsqueeze(1))
-        q_next = self.qnet_target.forward(sn_batch, device).detach()
+        q_eval = self.qnet_eval(s_batch, device).gather(1, a_ts.unsqueeze(1))
+        q_next = self.qnet_target(sn_batch, device).detach()
         
         if USE_DOUBLE_DQN:
-            a_eval = self.qnet_eval.forward(sn_batch, device).detach().argmax(1).view(-1,1)
+            a_eval = self.qnet_eval(sn_batch, device).detach().argmax(1).view(-1,1)
             q_target = r_ts.view(self.batch_size, 1) + end_ts.view(self.batch_size, 1) \
                     * self.gamma * torch.gather(q_next, dim=1, index=a_eval).view(self.batch_size, 1)
         else:

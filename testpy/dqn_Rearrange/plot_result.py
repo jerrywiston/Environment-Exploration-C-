@@ -45,7 +45,7 @@ def PlotNavAchieve(fname, inter=20):
     plt.plot(rlist, 'g')
         
 
-def PlotResult(fname, smooth=20):
+def PlotResult(fname, smooth=20, color='b'):
     f = open(fname, "r")
     rec = json.load(f)
 
@@ -57,9 +57,10 @@ def PlotResult(fname, smooth=20):
     s1list, v1list = SmoothReward(r1list, smooth)
     s2list, v2list = SmoothReward(r2list, smooth)
     #errorfill(range(len(s1list)), np.array(s1list), np.array(v1list), color="r")
-    errorfill(range(len(s2list)), np.array(s2list), np.array(v2list), color="b")
+    errorfill(range(len(s2list)), np.array(s2list), np.array(v2list), color=color)
 
-json_name = "XXXXX.json"
+json_name = "OX.json"
 PlotResult(json_name, smooth=20)
-#PlotNavAchieve(json_name, inter=20)
+PlotNavAchieve(json_name, inter=20)
+
 plt.show()

@@ -5,10 +5,11 @@ import matplotlib.pyplot as plt
 import json
 import cv2
 import models
+
 #%%
 env = GSlamBot2DWrapper.Bot2DEnv(obs_size=128, 
                             grid_size=3, 
-                            map_path="Image/map9.png",
+                            map_path="Image/map10.png",
                             task="Navigation")
 memory_size = 800
 RL = dqn.DeepQNetwork(

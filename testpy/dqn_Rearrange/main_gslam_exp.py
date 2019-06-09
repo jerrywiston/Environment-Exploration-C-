@@ -30,13 +30,12 @@ if __name__ == '__main__':
     for eps in range(800):
         state = env.reset()
         state_m = cv2.resize(state["map"], (64,64), interpolation=cv2.INTER_LINEAR)
-        state_m = np.concatenate([np.zeros([64,64,seq_size-1], np.float32), np.expand_dims(state_m,-1)], -1)
+        state_m = np.tile(np.expand_dims(state_m,-1),(1,1,seq_size))
         state["map"] = state_m
         step = 0
         
         # One Episode
         eps_reward = []
-        loss = 0.
         while True:
             env.render()
             q = None
@@ -55,7 +54,7 @@ if __name__ == '__main__':
             RL.store_transition(state, action, reward, state_next, done)
             eps_reward.append(reward)
             learn_count += 1
-            loss = 0
+            loss = 0.
             if total_step > memory_size:# and learn_count>memory_size:
                 loss = RL.learn()
 
@@ -64,11 +63,11 @@ if __name__ == '__main__':
             state = state_next.copy()
             step += 1
             total_step += 1
-            if done == 0. or step >= 600:
+            if done == 0. or step >= 2000:
                 reward_rec.append(eps_reward)
-                print()
+                print("\nTotal Reward: {:.4f}".format(np.sum(np.array(eps_reward))))
                 break
     
-    f = open("exp_baseline1.json", "w")
+    f = open("exp_baseline06052.json", "w")
     json.dump(reward_rec, f)
 

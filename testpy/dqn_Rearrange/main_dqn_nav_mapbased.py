@@ -11,10 +11,10 @@ env = Nav2DWrapperMap.Bot2DEnv(obs_size=128,
                             map_path="Image/map9.png")
 memory_size = 800
 RL = dqn.DeepQNetwork(
-                  qnet = models.QNetNav1,
+                  qnet = models.QNetNavMap,
                   n_actions = 3,
                   learning_rate = 2e-4, 
-                  reward_decay = 0.98,
+                  reward_decay = 0.95,
                   replace_target_iter = 100, 
                   memory_size = memory_size,
                   batch_size = 64,
