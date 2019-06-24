@@ -38,7 +38,7 @@ def PlotNavAchieve(fname, inter=20):
     for i in range(len(rec)-inter):
         count = 0.0
         for j in range(i,i+inter):
-            if rec[j][-1] >= 19:
+            if rec[j][-1] >= 15:
                 count += 1.0
         rlist.append(count/inter)
     plt.figure()
@@ -59,8 +59,11 @@ def PlotResult(fname, smooth=20, color='b'):
     #errorfill(range(len(s1list)), np.array(s1list), np.array(v1list), color="r")
     errorfill(range(len(s2list)), np.array(s2list), np.array(v2list), color=color)
 
-json_name = "OOXX.json"
+json_name = "OOO.json"
 PlotResult(json_name, smooth=20)
-PlotNavAchieve(json_name, inter=20)
+#PlotNavAchieve(json_name, inter=20)
+
+json_name = "sac_exp_baseline.json"
+PlotResult(json_name, smooth=20)
 
 plt.show()

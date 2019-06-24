@@ -19,14 +19,19 @@ namespace gslam
         //std::cerr<<"I am deleted!"<<std::hex<<m_traj.data();
     }
 
-    void Particle::mapping(const BotParam &param, const SensorData &readings)
+    real Particle::mapping(const BotParam &param, const SensorData &readings)
     {
+        real info_gain = 0;
         auto plist = utils::EndPoints(m_pose, readings);
         for(int i=0; i<readings.sensor_size; ++i){
-            if(readings.data[i] > readings.max_dist-1 || readings.data[i] < 1)
+            if(readings.data[i] < 1)
                 continue;
-            m_gmap.line({m_pose[0], m_pose[1]},{plist[i][0], plist[i][1]}, true);
+            else if(readings.data[i] < readings.max_dist-2)
+                info_gain += m_gmap.line({m_pose[0], m_pose[1]},{plist[i][0], plist[i][1]}, true);
+            else
+                info_gain += m_gmap.line({m_pose[0], m_pose[1]},{plist[i][0], plist[i][1]}, false);
         }
+        return info_gain;
     }
 
     void Particle::sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig)
@@ -41,6 +46,13 @@ namespace gslam
         } else if(ctl == Control::eTurnRight) {
             m_pose = mm.sample(m_pose, 0, 0, param.rotate_step);
         }
+        m_traj.push_back(m_pose);
+    }
+
+    void Particle::contSampling(gslam::real t, gslam::real r)
+    {
+        MotionModel mm(0.2,0.2,0.1);
+        m_pose = mm.sample(m_pose, t, 0, r);
         m_traj.push_back(m_pose);
     }
 
@@ -93,9 +105,11 @@ namespace gslam
     {
         m_particles.reserve(m_size);
         m_weights.reserve(m_size);
+        m_infoGain.reserve(m_size);
         for(int i=0; i<m_size; ++i){
             m_particles.emplace_back(pose, saved_map);
             m_weights.push_back(1.0 / (float)m_size);
+            m_infoGain.push_back(0);
         }
     }
 
@@ -121,7 +135,54 @@ namespace gslam
             // Update particle location
             m_particles[i].sampling(ctl, m_param);
             field[i] = m_particles[i].calcLogLikelihoodField(m_param, readings);
-            m_particles[i].mapping(m_param, readings);
+            m_infoGain[i] = m_particles[i].mapping(m_param, readings);
+            
+            //m_particles[i].addObs(readings);
+            //if(m_mapCount > 2){
+            //    m_particles[i].mappingList(m_param);
+            //    m_particles[i].clearObs();
+            //    m_mapCount = 0;
+            //}
+        }
+        // normalize of field array is not needed here
+        real normalize_max = -9999;
+        for(int i=0; i<m_size; ++i){
+            if(field[i] > normalize_max)
+                normalize_max = field[i];
+        }
+
+        for(int i=0; i<m_size; ++i)
+            m_weights[i] = std::exp(field[i] - normalize_max);
+
+        real tmp = 0;
+        for(int i=0; i<m_size; ++i)
+            n_tmp += m_weights[i];
+        
+        if(n_tmp != 0){
+            for(int i=0; i<m_size; ++i)
+                m_weights[i] = m_weights[i] / n_tmp;
+        }
+
+        // Calculate Neff
+        real Neff = 0;
+        for(int i=0; i<m_size; ++i){
+            Neff += m_weights[i] * m_weights[i];
+        }
+        Neff = 1.0 / Neff;
+        return Neff / m_size;
+    }
+
+    real ParticleFilter::contFeed(gslam::real t, gslam::real r, const SensorData &readings)
+    {
+        std::vector<real> field(m_size);
+        real n_tmp = 0;
+        m_mapCount++;
+        #pragma omp parallel for num_threads(8)
+        for(int i=0; i<m_size; i++) {
+            // Update particle location
+            m_particles[i].contSampling(t, r);
+            field[i] = m_particles[i].calcLogLikelihoodField(m_param, readings);
+            m_infoGain[i] = m_particles[i].mapping(m_param, readings);
             
             //m_particles[i].addObs(readings);
             //if(m_mapCount > 2){

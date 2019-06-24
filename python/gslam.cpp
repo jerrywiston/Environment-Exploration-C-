@@ -182,18 +182,41 @@ PYBIND11_MODULE(gslam, m) {
             readings.data = d["data"].cast<std::vector<gslam::real>>();
             return instance.feed(static_cast<gslam::Control>(action), readings);
         })
+        .def("contFeed", [] (gslam::ParticleFilter &instance, gslam::real t, gslam::real r, py::dict d) {
+            gslam::SensorData readings;
+            readings.sensor_size = d["sensor_size"].cast<int>();
+            readings.start_angle = d["start_angle"].cast<gslam::real>();
+            readings.end_angle = d["end_angle"].cast<gslam::real>();
+            readings.max_dist = d["max_dist"].cast<gslam::real>();
+            readings.data = d["data"].cast<std::vector<gslam::real>>();
+            return instance.contFeed(t, r, readings);
+        })
         .def("resampling", &gslam::ParticleFilter::resampling)
         .def("bestSampleId", &gslam::ParticleFilter::bestSampleId)
-        .def("getParticle", &gslam::ParticleFilter::getParticle, py::return_value_policy::reference);
+        .def("getParticle", &gslam::ParticleFilter::getParticle, py::return_value_policy::reference)
+        .def("getPose", []  (gslam::ParticleFilter &instance, int id){
+            auto pose = instance.getPose(id);
+            return std::make_tuple(pose[0], pose[1], pose[2]);
+        })
+        .def("getWeight", []  (gslam::ParticleFilter &instance, int id){
+            return instance.getWeight(id);
+        })
+        .def("getInfoGain", []  (gslam::ParticleFilter &instance, int id){
+            return instance.getInfoGain(id);
+        });
+
     py::class_<gslam::Particle>(m, "Particle")
         .def("getMap", &gslam::Particle::getMap, py::return_value_policy::reference)
+        .def_property_readonly("pose", [] (gslam::Particle &instance) {
+            auto pose = instance.getPose();
+            return std::make_tuple(pose[0], pose[1], pose[2]);
+        })
         .def("getTraj", [] (gslam::Particle &instance) {
             auto &traj = instance.getTraj();
 
             py::capsule free_when_done(traj.data(), [](void *f) {
                 //std::cerr<<"Traj array freed.\n";
             });
-
 
             return py::array_t<gslam::real>(
                 {static_cast<int>(traj.size()), 3}, // Pose2D (x y theta)

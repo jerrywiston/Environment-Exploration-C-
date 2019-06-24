@@ -1,10 +1,10 @@
 import GSlamContBot2DWrapper
 import numpy as np
-import ddpg
+import sac
 import matplotlib.pyplot as plt
 import json
 import cv2
-import models
+import models2
 
 #%%
 env = GSlamContBot2DWrapper.Bot2DEnv(obs_size=128, 
@@ -12,16 +12,14 @@ env = GSlamContBot2DWrapper.Bot2DEnv(obs_size=128,
                             map_path="Image/map9.png",
                             task="Navigation")
 memory_size = 1000
-RL = ddpg.DDPG(
-    actor_net = models.Actor,
-    critic_net = models.Critic,
+RL = sac.SAC(
+    model = {'anet':models2.PolicyNet, 'qnet':models2.QNet},
     n_actions = 2,
     learning_rate = [0.0001, 0.0002],
     reward_decay = 0.95,
     memory_size = memory_size,
     batch_size = 64,
-    var = 2,
-    var_decay = 0.9999,)
+    alpha = 0.5)
 
 #%%
 if __name__ == '__main__':
@@ -35,12 +33,11 @@ if __name__ == '__main__':
         eps_reward = []
         loss_a = loss_c = 0.
         while True:
-            if eps>200:
+            if eps>800:
                 env.render()
+
             if total_step > memory_size:
                 action = RL.choose_action(state)
-                #action = np.clip(action + exploration_noise.noise(), -1, 1)
-                #action = np.clip(np.random.normal(action, 1), -1, 1)
             else:
                 action = np.random.uniform(-1,1,2)
 
@@ -53,8 +50,8 @@ if __name__ == '__main__':
             if total_step > memory_size:
                 loss_a, loss_c = RL.learn()
 
-            print('\rEps: {:3d} | Step: {:3d} | Reward: {:+.3f} | Loss: [A>{:+.3f} C>{:+.3f}] | Action: [{:+.3f} {:+.3f}] | Var: {:.4f}\t'\
-                .format(eps, step, reward, loss_a, loss_c, action[0], action[1], RL.var), end="")
+            print('\rEps: {:3d} | Step: {:3d} | Reward: {:+.3f} | Loss: [A>{:+.3f} C>{:+.3f}] | Alpha: {:.4f} | Action: [{:+.3f} {:+.3f}]\t'\
+                .format(eps, step, reward, loss_a, loss_c, RL.alpha, action[0], action[1]), end="")
             state = state_next.copy()
             step += 1
             total_step += 1
@@ -63,6 +60,6 @@ if __name__ == '__main__':
                 print()
                 break
     
-    f = open("OOXX.json", "w")
+    f = open("NAV2.json", "w")
     json.dump(reward_rec, f)
 

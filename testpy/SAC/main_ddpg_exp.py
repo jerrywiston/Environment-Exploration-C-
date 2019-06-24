@@ -10,11 +10,11 @@ import models
 env = GSlamContBot2DWrapper.Bot2DEnv(obs_size=128, 
                             grid_size=3, 
                             map_path="Image/map9.png",
-                            task="Navigation")
+                            task="Exploration")
 memory_size = 1000
 RL = ddpg.DDPG(
-    actor_net = models.Actor,
-    critic_net = models.Critic,
+    actor_net = models.ActorExp,
+    critic_net = models.CriticExp,
     n_actions = 2,
     learning_rate = [0.0001, 0.0002],
     reward_decay = 0.95,
@@ -24,11 +24,16 @@ RL = ddpg.DDPG(
     var_decay = 0.9999,)
 
 #%%
+seq_size = 3
 if __name__ == '__main__':
     total_step = 0
     reward_rec= []
+
     for eps in range(1000):
         state = env.reset()
+        state_m = cv2.resize(state["map"], (64,64), interpolation=cv2.INTER_LINEAR)
+        state_m = np.tile(np.expand_dims(state_m,-1),(1,1,seq_size))
+        state["map"] = state_m
         step = 0
         
         # One Episode
@@ -39,14 +44,15 @@ if __name__ == '__main__':
                 env.render()
             if total_step > memory_size:
                 action = RL.choose_action(state)
-                #action = np.clip(action + exploration_noise.noise(), -1, 1)
-                #action = np.clip(np.random.normal(action, 1), -1, 1)
             else:
                 action = np.random.uniform(-1,1,2)
 
             # Get next state
             state_next, reward, done = env.step(action)
             reward = (reward-0) / 10
+            state_m_next = cv2.resize(state_next["map"], (64,64), interpolation=cv2.INTER_LINEAR)
+            state_m_next = np.concatenate([state["map"][:,:,1:seq_size], np.expand_dims(state_m_next,-1)], axis=2)
+            state_next["map"] = state_m_next
 
             RL.store_transition(state, action, reward, state_next, done)
             eps_reward.append(reward)
@@ -58,11 +64,11 @@ if __name__ == '__main__':
             state = state_next.copy()
             step += 1
             total_step += 1
-            if done == 0. or step >= 600:
+            if done == 0. or step >= 2000:
                 reward_rec.append(eps_reward)
-                print()
+                print("\nTotal Reward: {:.4f}".format(np.sum(np.array(eps_reward))))
                 break
     
-    f = open("OOXX.json", "w")
+    f = open("OX.json", "w")
     json.dump(reward_rec, f)
 

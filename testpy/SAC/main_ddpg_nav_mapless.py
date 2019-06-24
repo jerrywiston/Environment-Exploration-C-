@@ -37,6 +37,7 @@ if __name__ == '__main__':
         while True:
             if eps>200:
                 env.render()
+            q = None
             if total_step > memory_size:
                 action = RL.choose_action(state)
                 #action = np.clip(action + exploration_noise.noise(), -1, 1)
@@ -53,8 +54,8 @@ if __name__ == '__main__':
             if total_step > memory_size:
                 loss_a, loss_c = RL.learn()
 
-            print('\rEps: {:3d} | Step: {:3d} | Reward: {:+.3f} | Loss: [A>{:+.3f} C>{:+.3f}] | Action: [{:+.3f} {:+.3f}] | Var: {:.4f}\t'\
-                .format(eps, step, reward, loss_a, loss_c, action[0], action[1], RL.var), end="")
+            print('\rEps: {:3d} | Step: {:3d} | Reward: {:+.3f} | Loss: [A>{:+.3f} C>{:+.3f}] | Q: {} | Action: [{:+.3f} {:+.3f}] | Var: {:.4f}\t'\
+                .format(eps, step, reward, loss_a, loss_c, q, action[0], action[1], RL.var), end="")
             state = state_next.copy()
             step += 1
             total_step += 1
@@ -63,6 +64,6 @@ if __name__ == '__main__':
                 print()
                 break
     
-    f = open("OOXX.json", "w")
+    f = open("OX.json", "w")
     json.dump(reward_rec, f)
 

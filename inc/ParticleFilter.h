@@ -15,8 +15,9 @@ namespace gslam
     public:
         Particle(const Pose2D &pose, const GridMap &saved_map);
         ~Particle();
-        void mapping(const BotParam &param, const SensorData &reading);
+        real mapping(const BotParam &param, const SensorData &reading);
         void sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig={0.4_r, 0.4_r, 0.4_r});
+        void contSampling(gslam::real t, gslam::real r);
         real calcLogLikelihoodField(const BotParam &param, const SensorData &readings) const;
         
         Pose2D getPose(){
@@ -56,6 +57,7 @@ namespace gslam
     public:
         ParticleFilter(const Pose2D &pose, const BotParam &param, const GridMap &saved_map, const int size);
         real feed(Control ctl, const SensorData &readings);
+        real contFeed(gslam::real t, gslam::real r, const SensorData &readings);
         void resampling();
         
         int getSize(){
@@ -64,6 +66,14 @@ namespace gslam
         
         Vector3 getPose(int id){
             return m_particles[id].getPose();
+        }
+
+        real getWeight(int id){
+            return m_weights[id];
+        }
+
+        real getInfoGain(int id){
+            return m_infoGain[id];
         }
 
         // We don't use reference since the particle may be removed.
@@ -91,6 +101,7 @@ namespace gslam
     private:
         int m_size;
         std::vector<real> m_weights;
+        std::vector<real> m_infoGain;
         BotParam m_param;
         std::vector<Particle> m_particles;
         std::default_random_engine m_generator;
