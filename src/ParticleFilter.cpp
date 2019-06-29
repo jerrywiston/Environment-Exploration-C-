@@ -5,6 +5,7 @@
 #include <cassert>
 #include <numeric>
 #include <omp.h>
+#include <math.h>
 
 namespace gslam
 {
@@ -230,4 +231,38 @@ namespace gslam
         }
         m_particles = new_particles;
     }
+
+    real ParticleFilter::getMapInfoGain(){
+        real ig = 0;
+        for(int i=0; i<m_size; ++i){
+            ig += m_infoGain[i] * m_weights[i];
+        }
+        return ig;
+    }
+    
+    real ParticleFilter::getTrajEntropy(){
+        real traj_ent = 0;
+        int tsize = (int)m_particles[0].getTraj().size();
+        for(int j=1; j<tsize; ++j){
+            gslam::Pose2D mean(0,0,0); 
+            gslam::Pose2D var(0,0,0);
+           
+            for(int i=0; i<m_size; ++i)
+                mean += m_weights[i] * m_particles[i].getTraj()[j];
+             
+            for(int i=0; i<m_size; ++i){
+                Pose2D temp = m_particles[i].getTraj()[j] - mean;
+                var[0] += m_weights[i] * temp[0] * temp[0];
+                var[1] += m_weights[i] * temp[1] * temp[1];
+                var[2] += m_weights[i] * temp[2] * temp[2];
+            }          
+            
+            // pi=3.1415926, e=2.71828, h(x) = 0.5 * log(2*pi*e*var)
+            traj_ent +=  0.5 * log(2 * 3.142 * 2.718 * (var[0] + var[1] + var[2]) + 1e-3); 
+        }
+
+        traj_ent /= (tsize-1);
+        return traj_ent;
+    }
+    
 }

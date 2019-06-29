@@ -192,6 +192,12 @@ PYBIND11_MODULE(gslam, m) {
             return instance.contFeed(t, r, readings);
         })
         .def("resampling", &gslam::ParticleFilter::resampling)
+        .def("getMapInfoGain", []  (gslam::ParticleFilter &instance){
+            return instance.getMapInfoGain();
+        })
+        .def("getTrajEntropy", []  (gslam::ParticleFilter &instance){
+            return instance.getTrajEntropy();
+        })
         .def("bestSampleId", &gslam::ParticleFilter::bestSampleId)
         .def("getParticle", &gslam::ParticleFilter::getParticle, py::return_value_policy::reference)
         .def("getPose", []  (gslam::ParticleFilter &instance, int id){

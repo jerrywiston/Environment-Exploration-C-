@@ -60,6 +60,9 @@ namespace gslam
         real contFeed(gslam::real t, gslam::real r, const SensorData &readings);
         void resampling();
         
+        real getMapInfoGain();
+        real getTrajEntropy();
+        
         int getSize(){
             return m_size;
         }
