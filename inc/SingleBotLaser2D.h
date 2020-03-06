@@ -10,27 +10,16 @@
 
 namespace gslam
 {
-    enum class Control {
-        eNone=0,
-        eForward=1,
-        eBackward=2,
-        eTurnLeft=3,
-        eTurnRight=4,
-    };
-
     class SingleBotLaser2DGrid {
     public:
-        SingleBotLaser2DGrid(const Pose2D &bot_pose, const BotParam &param,
-            const std::string &fname);
         SingleBotLaser2DGrid(const Pose2D &bot_pose, const BotParam &param,
             const Storage2D<uint8_t> &map);
 
         real rayCast(const Pose2D &pose) const;
 
         SensorData scan() const;
-        bool botAction(Control action);
-        bool continuousAction(real t, real r);
-
+        bool botAction(real t, real r);
+        
         // Get Function
         Eigen::MatrixXf getMap(){
             return m_imageMap;

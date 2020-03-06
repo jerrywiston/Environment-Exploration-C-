@@ -35,24 +35,9 @@ namespace gslam
         return info_gain;
     }
 
-    void Particle::sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig)
+    void Particle::Sampling(gslam::real t, gslam::real r, gslam::real noise_nor, gslam::real noise_tan, gslam::real noise_ang)
     {
-        MotionModel mm(0.2,0.2,0.1);
-        if(ctl == Control::eForward) {
-            m_pose = mm.sample(m_pose, param.velocity, 0, 0);
-        } else if(ctl == Control::eBackward) {
-            m_pose = mm.sample(m_pose, -param.velocity, 0, 0);
-        } else if(ctl == Control::eTurnLeft) {
-            m_pose = mm.sample(m_pose, 0, 0, -param.rotate_step);
-        } else if(ctl == Control::eTurnRight) {
-            m_pose = mm.sample(m_pose, 0, 0, param.rotate_step);
-        }
-        m_traj.push_back(m_pose);
-    }
-
-    void Particle::contSampling(gslam::real t, gslam::real r)
-    {
-        MotionModel mm(0.2,0.2,0.1);
+        MotionModel mm(noise_nor, noise_tan, noise_ang);
         m_pose = mm.sample(m_pose, t, 0, r);
         m_traj.push_back(m_pose);
     }
@@ -114,19 +99,7 @@ namespace gslam
         }
     }
 
-    void Particle::mappingList(const BotParam &param)
-    {
-        for(int j=0; j<m_obsList.size(); ++j){
-            auto plist = utils::EndPoints(m_posList[j], m_obsList[j]);
-            for(int i=0; i<m_obsList[j].sensor_size; ++i){
-                if(m_obsList[j].data[i] > m_obsList[j].max_dist-1 || m_obsList[j].data[i] < 1)
-                    continue;
-                m_gmap.line({m_posList[j][0], m_posList[j][1]},{plist[i][0], plist[i][1]}, true);
-            }
-        }
-    }
-
-    real ParticleFilter::feed(Control ctl, const SensorData &readings)
+    real ParticleFilter::feed(gslam::real t, gslam::real r, const SensorData &readings)
     {
         std::vector<real> field(m_size);
         real n_tmp = 0;
@@ -134,63 +107,9 @@ namespace gslam
         #pragma omp parallel for num_threads(8)
         for(int i=0; i<m_size; i++) {
             // Update particle location
-            m_particles[i].sampling(ctl, m_param);
+            m_particles[i].Sampling(t, r, m_param.noise_nor, m_param.noise_tan, m_param.noise_ang);
             field[i] = m_particles[i].calcLogLikelihoodField(m_param, readings);
             m_infoGain[i] = m_particles[i].mapping(m_param, readings);
-            
-            //m_particles[i].addObs(readings);
-            //if(m_mapCount > 2){
-            //    m_particles[i].mappingList(m_param);
-            //    m_particles[i].clearObs();
-            //    m_mapCount = 0;
-            //}
-        }
-        // normalize of field array is not needed here
-        real normalize_max = -9999;
-        for(int i=0; i<m_size; ++i){
-            if(field[i] > normalize_max)
-                normalize_max = field[i];
-        }
-
-        for(int i=0; i<m_size; ++i)
-            m_weights[i] = std::exp(field[i] - normalize_max);
-
-        real tmp = 0;
-        for(int i=0; i<m_size; ++i)
-            n_tmp += m_weights[i];
-        
-        if(n_tmp != 0){
-            for(int i=0; i<m_size; ++i)
-                m_weights[i] = m_weights[i] / n_tmp;
-        }
-
-        // Calculate Neff
-        real Neff = 0;
-        for(int i=0; i<m_size; ++i){
-            Neff += m_weights[i] * m_weights[i];
-        }
-        Neff = 1.0 / Neff;
-        return Neff / m_size;
-    }
-
-    real ParticleFilter::contFeed(gslam::real t, gslam::real r, const SensorData &readings)
-    {
-        std::vector<real> field(m_size);
-        real n_tmp = 0;
-        m_mapCount++;
-        #pragma omp parallel for num_threads(8)
-        for(int i=0; i<m_size; i++) {
-            // Update particle location
-            m_particles[i].contSampling(t, r);
-            field[i] = m_particles[i].calcLogLikelihoodField(m_param, readings);
-            m_infoGain[i] = m_particles[i].mapping(m_param, readings);
-            
-            //m_particles[i].addObs(readings);
-            //if(m_mapCount > 2){
-            //    m_particles[i].mappingList(m_param);
-            //    m_particles[i].clearObs();
-            //    m_mapCount = 0;
-            //}
         }
         // normalize of field array is not needed here
         real normalize_max = -9999;

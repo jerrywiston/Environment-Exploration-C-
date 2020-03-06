@@ -13,10 +13,10 @@ namespace gslam {
         real end_angle;
         real max_dist;
 
-        // odom
-        real velocity;
-        // degree
-        real rotate_step;
+        //motion model
+        real noise_nor;
+        real noise_tan;
+        real noise_ang;
     };
 
     struct SensorData {

@@ -46,7 +46,8 @@ namespace gslam {
     class GridMap {
     public:
         GridMap(const MapParam &param, real gsize=1.0_r);
-
+        BoundingBox getBoundary()
+        {   return m_boundary;  }
         real getGridProb(const Vector2i &pos) const;
         real getCoordProb(const Vector2 &pos) const;
 #ifdef WITH_OPENCV

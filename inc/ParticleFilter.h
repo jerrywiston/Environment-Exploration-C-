@@ -10,14 +10,18 @@
 
 namespace gslam
 {
+    struct IdRecord{
+        int id;
+        int timestemp;
+        IdRecord(int i, int t): id(i), timestemp(t){};
+    };
 
     class Particle {
     public:
         Particle(const Pose2D &pose, const GridMap &saved_map);
         ~Particle();
         real mapping(const BotParam &param, const SensorData &reading);
-        void sampling(Control ctl, const BotParam &param, const std::array<real, 3> &sig={0.4_r, 0.4_r, 0.4_r});
-        void contSampling(gslam::real t, gslam::real r);
+        void Sampling(gslam::real t, gslam::real r, gslam::real noise_nor, gslam::real noise_tan, gslam::real noise_ang);
         real calcLogLikelihoodField(const BotParam &param, const SensorData &readings) const;
         
         Pose2D getPose(){
@@ -28,21 +32,19 @@ namespace gslam
             return m_gmap;
         }
 
+        std::vector<IdRecord> &getIdRecord(){
+            return m_idRecord;
+        }
+
         std::vector<Pose2D> &getTraj(){
             return m_traj;
         }
 
-        void mappingList(const BotParam &param);
-
-        void addObs(const SensorData &reading){
-            m_obsList.push_back(reading);
-            m_posList.push_back(m_pose);
+        void markId(int id, int timestemp){
+            IdRecord temp(id, timestemp);
+            m_idRecord.push_back(temp);
         }
 
-        void clearObs(){
-            m_obsList.clear();
-            m_posList.clear();
-        }
     private:
         Pose2D m_pose;
         GridMap m_gmap;
@@ -51,13 +53,13 @@ namespace gslam
 
         std::vector<SensorData> m_obsList;
         std::vector<Pose2D> m_posList;
+        std::vector<IdRecord> m_idRecord;
     };
 
     class ParticleFilter {
     public:
         ParticleFilter(const Pose2D &pose, const BotParam &param, const GridMap &saved_map, const int size);
-        real feed(Control ctl, const SensorData &readings);
-        real contFeed(gslam::real t, gslam::real r, const SensorData &readings);
+        real feed(gslam::real t, gslam::real r, const SensorData &readings);
         void resampling();
         
         real getMapInfoGain();
@@ -89,6 +91,10 @@ namespace gslam
             return m_particles[id].getTraj();
         }
 
+        std::vector<IdRecord> getIdRecord(int id){
+            return m_particles[id].getIdRecord();
+        }
+
         int bestSampleId(){
             real tmp = -1000;
             int id = 0;
@@ -100,6 +106,13 @@ namespace gslam
             }
             return id;
         }
+
+        void markParticles(int timestemp){
+            for(int i=0; i<m_particles.size(); ++i)
+                m_particles[i].markId(i,timestemp);
+        }
+
+        
     
     private:
         int m_size;

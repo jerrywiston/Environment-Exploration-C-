@@ -5,30 +5,8 @@
 #include <cmath>
 #include <iostream>
 
-#ifdef WITH_OPENCV
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#endif
-
 namespace gslam
 {
-    SingleBotLaser2DGrid::SingleBotLaser2DGrid(const Pose2D &bot_pose, const BotParam &param, const std::string &fname)
-        : m_pose(bot_pose), m_param(param)
-    {
-#ifdef WITH_OPENCV
-        cv::Mat image;
-        image = cv::imread(fname, cv::IMREAD_GRAYSCALE);
-        m_imageMap = Eigen::MatrixXf::Zero(image.size().height, image.size().width);
-
-        for(int i=0; i<image.size().height; ++i)
-            for(int j=0; j<image.size().width; ++j){
-                m_imageMap(i,j) = (real)image.at<uchar>(i,j) / 255.0_r;
-            }
-#endif
-        m_traj.push_back(bot_pose);
-    }
-
     SingleBotLaser2DGrid::SingleBotLaser2DGrid(const Pose2D &bot_pose, const BotParam &param, const Storage2D<uint8_t> &map)
         : m_pose(bot_pose), m_param(param)
     {
@@ -83,48 +61,8 @@ namespace gslam
         return sdata;
     }
 
-    bool SingleBotLaser2DGrid::botAction(Control action){
-        MotionModel mm(0.2,0.1,0.1);
-        Pose2D org_pose = m_pose;
-        switch(action){
-            case Control::eForward:
-                m_pose = mm.sample(m_pose, m_param.velocity, 0, 0);
-                break;
-
-            case Control::eBackward:
-                m_pose = mm.sample(m_pose, -m_param.velocity, 0, 0);
-                break;
-            
-            case Control::eTurnLeft:
-                m_pose = mm.sample(m_pose, 0, 0, -m_param.rotate_step);
-                break;
-
-            case Control::eTurnRight:
-                m_pose = mm.sample(m_pose, 0, 0, m_param.rotate_step);
-                break;
-        }
-        std::vector<Vector2i> rec;
-        utils::Bresenham(rec, {org_pose[0], org_pose[1]}, {m_pose[0], m_pose[1]});
-        for(auto &r: rec) {
-            
-            if(r[1] < 0 || r[1] > m_imageMap.rows() || r[0] < 0 || r[0] > m_imageMap.cols()) {
-                // Out of range, restore pose!
-                m_pose = org_pose;
-                return false;
-            }
-            if(m_imageMap(r[1], r[0]) < 0.5f) {
-                // blocked by something, restore pose!
-                m_pose = org_pose;
-                return false;
-            }
-        }
-
-        m_traj.push_back(m_pose);
-        return true;
-    }
-
-    bool SingleBotLaser2DGrid::continuousAction(real t, real r){
-        MotionModel mm(0.2,0.1,0.1);
+    bool SingleBotLaser2DGrid::botAction(real t, real r){
+        MotionModel mm(m_param.noise_nor, m_param.noise_tan, m_param.noise_ang);
         Pose2D org_pose = m_pose;
         m_pose = mm.sample(m_pose, t, 0, r);
         std::vector<Vector2i> rec;

@@ -69,8 +69,24 @@ PYBIND11_MODULE(gslam, m) {
                 mat.data(), // the data pointer
                 free_when_done); // numpy array references this parent
         })
+        .def("getBoundary", [] (gslam::GridMap &instance) {
+            auto bb = instance.getBoundary();
+            return std::make_tuple( bb.min[0],bb.max[0], bb.min[1],bb.max[1]);
+        })
         .def("getGridProb", [] (gslam::GridMap &instance, const std::tuple<int, int> &xy) {
             return instance.getGridProb({std::get<0>(xy), std::get<1>(xy)});
+        })
+        .def("getBoundaryMapProb", [](gslam::GridMap &instance, const std::tuple<int, int, int, int> &boundary) {
+            auto mat = instance.getMapProb(gslam::Vector2i(std::get<0>(boundary),std::get<2>(boundary)), gslam::Vector2i(std::get<1>(boundary),std::get<3>(boundary)));
+            py::capsule free_when_done(mat.data(), [](void *f) {
+                delete[] reinterpret_cast<uint8_t *>(f);;
+            });
+            
+            return py::array_t<gslam::real>(
+                {mat.rows(), mat.cols()}, // shape
+                {mat.cols()*sizeof(gslam::real), sizeof(gslam::real)}, // C-style contiguous strides for double
+                mat.data(), // the data pointer
+                free_when_done); // numpy array references this parent
         })
         .def("getWholeMapProb", [](gslam::GridMap &instance) {
             auto mat = instance.getMapProb();
@@ -108,8 +124,9 @@ PYBIND11_MODULE(gslam, m) {
             param.start_angle = d["start_angle"].cast<gslam::real>();
             param.end_angle = d["end_angle"].cast<gslam::real>();
             param.max_dist = d["max_dist"].cast<gslam::real>();
-            param.velocity = d["velocity"].cast<gslam::real>();
-            param.rotate_step = d["rotate_step"].cast<gslam::real>();
+            param.noise_nor = d["noise_nor"].cast<gslam::real>();
+            param.noise_tan = d["noise_tan"].cast<gslam::real>();
+            param.noise_ang = d["noise_ang"].cast<gslam::real>();
 
             py::buffer_info info = map.request();
             if(info.ndim != 2)
@@ -130,11 +147,8 @@ PYBIND11_MODULE(gslam, m) {
             auto dist = instance.rayCast({std::get<0>(pose), std::get<1>(pose), std::get<2>(pose)});
             return dist;
         })
-        .def("action", [] (gslam::SingleBotLaser2DGrid &instance, int action) {
-            return instance.botAction(static_cast<gslam::Control>(action));
-        })
-        .def("continuous_action", [] (gslam::SingleBotLaser2DGrid &instance, gslam::real t, gslam::real r) {
-            return instance.continuousAction(t, r);
+        .def("action", [] (gslam::SingleBotLaser2DGrid &instance, gslam::real t, gslam::real r) {
+            return instance.botAction(t, r);
         })
         .def_property_readonly("pose", [] (gslam::SingleBotLaser2DGrid &instance) {
             auto pose = instance.getPose();
@@ -144,7 +158,7 @@ PYBIND11_MODULE(gslam, m) {
             instance.setPose({std::get<0>(pose), std::get<1>(pose), std::get<2>(pose)});
         })
         .def("getTraj", [] (gslam::SingleBotLaser2DGrid &instance) {
-            auto &traj = instance.getTraj();
+            auto traj = instance.getTraj();
 
             py::capsule free_when_done(traj.data(), [](void *f) {
                 //std::cerr<<"Traj array freed.\n";
@@ -169,29 +183,24 @@ PYBIND11_MODULE(gslam, m) {
             param.start_angle = d["start_angle"].cast<gslam::real>();
             param.end_angle = d["end_angle"].cast<gslam::real>();
             param.max_dist = d["max_dist"].cast<gslam::real>();
-            param.velocity = d["velocity"].cast<gslam::real>();
-            param.rotate_step = d["rotate_step"].cast<gslam::real>();
+            param.noise_nor = d["noise_nor"].cast<gslam::real>();
+            param.noise_tan = d["noise_tan"].cast<gslam::real>();
+            param.noise_ang = d["noise_ang"].cast<gslam::real>();
             return gslam::ParticleFilter({std::get<0>(pose), std::get<1>(pose), std::get<2>(pose)}, param, saved_map, size);
         }))
-        .def("feed", [] (gslam::ParticleFilter &instance, int action, py::dict d) {
+        .def("feed", [] (gslam::ParticleFilter &instance, gslam::real t, gslam::real r, py::dict d) {
             gslam::SensorData readings;
             readings.sensor_size = d["sensor_size"].cast<int>();
             readings.start_angle = d["start_angle"].cast<gslam::real>();
             readings.end_angle = d["end_angle"].cast<gslam::real>();
             readings.max_dist = d["max_dist"].cast<gslam::real>();
             readings.data = d["data"].cast<std::vector<gslam::real>>();
-            return instance.feed(static_cast<gslam::Control>(action), readings);
-        })
-        .def("contFeed", [] (gslam::ParticleFilter &instance, gslam::real t, gslam::real r, py::dict d) {
-            gslam::SensorData readings;
-            readings.sensor_size = d["sensor_size"].cast<int>();
-            readings.start_angle = d["start_angle"].cast<gslam::real>();
-            readings.end_angle = d["end_angle"].cast<gslam::real>();
-            readings.max_dist = d["max_dist"].cast<gslam::real>();
-            readings.data = d["data"].cast<std::vector<gslam::real>>();
-            return instance.contFeed(t, r, readings);
+            return instance.feed(t, r, readings);
         })
         .def("resampling", &gslam::ParticleFilter::resampling)
+        .def("markParticles", []  (gslam::ParticleFilter &instance, int timestemp){
+            return instance.markParticles(timestemp);
+        })
         .def("getMapInfoGain", []  (gslam::ParticleFilter &instance){
             return instance.getMapInfoGain();
         })
@@ -228,6 +237,19 @@ PYBIND11_MODULE(gslam, m) {
                 {static_cast<int>(traj.size()), 3}, // Pose2D (x y theta)
                 {3*sizeof(gslam::real), sizeof(gslam::real)}, // C-style contiguous strides for double
                 reinterpret_cast<const gslam::real *>(traj.data())
+                , free_when_done); // numpy array references this parent
+        })
+        .def("getIdRecord", [] (gslam::Particle &instance) {
+            auto &idRecord = instance.getIdRecord();
+
+            py::capsule free_when_done(idRecord.data(), [](void *f) {
+                //std::cerr<<"Traj array freed.\n";
+            });
+
+            return py::array_t<int>(
+                {static_cast<int>(idRecord.size()), 2}, // Pose2D (x y theta)
+                {2*sizeof(int), sizeof(int)}, // C-style contiguous strides for double
+                reinterpret_cast<const int *>(idRecord.data())
                 , free_when_done); // numpy array references this parent
         });
 #ifdef VERSION_INFO

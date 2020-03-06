@@ -119,7 +119,8 @@ namespace gslam
                 new_grid_p = std::exp(change)/(1+std::exp(change));
             }
             old_grid_ent = - old_grid_p*std::log(old_grid_p) - (1-old_grid_p)*std::log(1-old_grid_p);
-            new_grid_ent = - new_grid_p*std::log(new_grid_p) - (1-new_grid_p)*std::log(1-new_grid_p);
+            new_grid_ent = - old_grid_p*std::log(new_grid_p) - (1-old_grid_p)*std::log(1-new_grid_p);
+            //new_grid_ent = - new_grid_p*std::log(new_grid_p) - (1-new_grid_p)*std::log(1-new_grid_p);
             delta_info += old_grid_ent - new_grid_ent; 
             m_boundary.min[0] = std::min(rec[i][0], m_boundary.min[0]);
             m_boundary.min[1] = std::min(rec[i][1], m_boundary.min[1]);
